@@ -14,25 +14,30 @@
 
 ## 1. WSL: Gateway ROS 브리지 시작
 
-WSL 터미널 A에서 실행한다. Jetson에서 토픽을 보내기 **전에** 브리지를 켠다. 이 최소 검사에서는 HTTP Gateway, 모의 TCAD, Unity를 켤 필요가 없다.
+Jetson에서 토픽을 보내기 **전에** WSL 브리지를 켠다. 이 최소 검사에서는 HTTP Gateway, 모의 TCAD, Unity를 켤 필요가 없다.
+
+가상환경과 Gateway 패키지가 아직 없다면 **최초 1회만** 아래를 실행한다. 이미 `(posco-gateway-venv)` 프롬프트에서 패키지 설치를 마쳤다면 이 블록은 건너뛴다.
 
 ```bash
 cd /mnt/c/posco_project
 source /opt/ros/humble/setup.bash
-
-# 최초 1회만: ROS Python 패키지를 볼 수 있는 WSL 전용 가상환경을 준비한다.
-# 이미 필요한 패키지가 설치된 WSL Python 환경이라면 생성·설치는 생략할 수 있다.
 python3 -m venv --system-site-packages "$HOME/posco-gateway-venv"
 source "$HOME/posco-gateway-venv/bin/activate"
 python -m pip install --no-cache-dir -e ./services/event_gateway
+```
 
-# 이후 실행 시에는 source "$HOME/posco-gateway-venv/bin/activate"부터 반복한다.
+**WSL 터미널 A를 새로 열 때마다** 다음 전체 블록을 실행한다. 가상환경 표시만으로 ROS 환경이 적용된 것은 아니다. `source /opt/ros/humble/setup.bash`를 빼면 설치된 `rclpy`도 `ModuleNotFoundError`가 난다.
+
+```bash
+cd /mnt/c/posco_project
+source /opt/ros/humble/setup.bash
+source "$HOME/posco-gateway-venv/bin/activate"
 python -c 'import rclpy, std_msgs, psycopg, pydantic; print("Python 의존성 확인")'
 export PYTHONPATH="$PWD/services/event_gateway/src"
 python -m event_gateway.ros_adapter
 ```
 
-`rclpy` import가 실패하면 기존 WSL ROS 환경의 Python 버전과 가상환경 Python이 같은지 확인한다. ROS 설치를 다시 하거나 Jetson의 시스템 설정을 바꾸지 않는다. `.env`는 브리지가 직접 읽는다. 이미 통신되던 `ROS_DOMAIN_ID`·`RMW_IMPLEMENTATION` 셸 환경을 그대로 유지한다.
+ROS setup을 소싱한 뒤에도 `rclpy` import가 실패하면 기존 WSL ROS 환경의 Python 버전과 가상환경 Python이 같은지 확인한다. ROS 설치를 다시 하거나 Jetson의 시스템 설정을 바꾸지 않는다. `.env`는 브리지가 직접 읽는다. 이미 통신되던 `ROS_DOMAIN_ID`·`RMW_IMPLEMENTATION` 셸 환경을 그대로 유지한다.
 
 `Failed building editable for fab-event-gateway`가 나왔던 경우에는 현재 저장소의 `services/event_gateway/pyproject.toml`에 두 패키지 경로가 명시되어 있는지 확인하고 위 `pip install --no-cache-dir -e` 명령만 다시 실행한다. 가상환경을 삭제하거나 Jetson 설정을 바꿀 필요는 없다. 다시 실패하면 마지막 `Failed building` 줄보다 앞에 있는 첫 `ValueError` 또는 `error:`부터 오류를 확인한다.
 

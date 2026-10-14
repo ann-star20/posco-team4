@@ -19,6 +19,18 @@ from .dead_letters import record_dead_letter
 from .repository import EventConflict, EventRepository
 
 
+def shutdown_ros(ros) -> None:
+    if ros.ok():
+        ros.shutdown()
+
+
+def spin_ros(node, ros) -> None:
+    try:
+        ros.spin(node)
+    except KeyboardInterrupt:
+        pass
+
+
 def store_ros_event(repository: EventRepository, event: EventCreate,
                     run_id: str, settings: Settings):
     run_uuid = UUID(run_id)
@@ -167,10 +179,10 @@ def main() -> None:
 
     Thread(target=dispatch_commands, daemon=True).start()
     try:
-        rclpy.spin(node)
+        spin_ros(node, rclpy)
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        shutdown_ros(rclpy)
 
 
 if __name__ == "__main__":

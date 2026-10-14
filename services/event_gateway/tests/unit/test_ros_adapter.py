@@ -1,6 +1,7 @@
 import json
 from uuid import uuid4
 
+from event_gateway import ros_adapter
 from event_gateway.ros_adapter import RosEventAdapter
 
 
@@ -28,3 +29,22 @@ def test_full_queue_does_not_report_accepted():
         "occurred_at": "2026-10-14T00:00:00Z", "payload": {}
     }
     assert adapter.receive(json.dumps(event)) is False
+
+
+def test_ros_cleanup_does_not_shutdown_closed_context():
+    class AlreadyClosedRos:
+        def ok(self):
+            return False
+
+        def shutdown(self):
+            raise AssertionError("shutdown must not run twice")
+
+    ros_adapter.shutdown_ros(AlreadyClosedRos())
+
+
+def test_ros_spin_treats_keyboard_interrupt_as_normal_stop():
+    class InterruptedRos:
+        def spin(self, node):
+            raise KeyboardInterrupt
+
+    ros_adapter.spin_ros(object(), InterruptedRos())
