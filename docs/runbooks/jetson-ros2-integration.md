@@ -8,10 +8,10 @@
 
 ## 1. PC/WSL 준비
 
-1. `postgres-db` 컨테이너가 실행 중인지 확인한다. 기존 DB를 삭제하거나 재생성하지 않는다.
-2. Gateway를 실행하는 환경에서 `.env`의 `DATABASE_URL` 호스트와 포트가 실제 PostgreSQL에 닿는지 확인한다. Windows의 `127.0.0.1`은 WSL에서 항상 같은 주소가 아니므로 WSL 실행 시 접속 주소를 별도로 검증한다.
+1. Gateway가 실제 사용하는 `.env`의 `DATABASE_URL`을 Aiven PostgreSQL 연결 문자열(`sslmode=require`)로 설정한다. 로컬 Docker PostgreSQL은 이 실행 경로에 필요하지 않다. 비밀번호가 포함된 URL은 Git이나 실행 로그에 출력하지 않는다.
+2. `TEST_DATABASE_URL`도 Aiven을 사용할 수 있다. 테스트는 고유 임시 스키마를 만들어 해당 스키마만 제거하므로 기존 `public` 데이터와 분리된다. Gateway와 테스트를 실행하는 각각의 환경에서 Aiven 호스트·포트 및 TLS 연결을 확인한다.
 3. Python 3.10 이상 환경에 `pip install -e "services/event_gateway[test]"`를 실행한다. WSL에서 ROS bridge를 실행할 Python에는 `rclpy`와 `std_msgs`가 이미 설치된 ROS 환경을 사용한다.
-4. 저장소 루트에서 `python -m event_gateway.migrate`로 읽기 전용 점검한다. 기존 001과 정확히 같은 `events` 테이블이 있다면 `python -m event_gateway.migrate --adopt-existing-001`을 한 번만 실행한다. 이후 `python -m event_gateway.migrate --apply`로 미적용 DDL만 적용한다. 개발 DB에는 002/003 적용을 확인했다.
+4. 저장소 루트에서 `python -m event_gateway.migrate`로 Aiven의 `public` 스키마를 읽기 전용 점검한다. 기존 001과 정확히 같은 `events` 테이블이 있다면 `python -m event_gateway.migrate --adopt-existing-001`을 한 번만 실행한다. 이후 `python -m event_gateway.migrate --apply`로 미적용 DDL만 적용한다. 운영 데이터 삭제·재생성은 하지 않는다.
 5. `TCAD_MODE=mock`, `UNITY_MODE=mock`으로 시작한다. PowerShell에서는 `scripts/run-integration.ps1`, WSL에서는 ROS 환경을 먼저 소싱하고 `bash scripts/run-integration.sh`를 실행한다. 두 스크립트를 동시에 실행하지 않는다.
 
 ## 2. Jetson 프로젝트 코드 배치
@@ -45,4 +45,4 @@ ros2 run fab_virtual_lot fab_demo_publisher
 
 ## 테스트
 
-`python -m pytest -q`는 전용 `TEST_DATABASE_URL`의 테스트 DB에 임시 스키마를 만들고 테스트 종료 시 그 스키마만 제거한다. 운영/개발 `events`를 삭제하지 않는다. 실제 Jetson ROS 왕복, 실제 TCAD, 실제 Unity는 별도 실연동 시험이며 이 명령의 합격으로 대체하지 않는다.
+`python -m pytest -q`는 `TEST_DATABASE_URL`의 DB에 고유 임시 스키마를 만들고 테스트 종료 시 그 스키마만 제거한다. `DATABASE_URL`과 같은 Aiven DB를 가리켜도 기존 `public.events`를 삭제하지 않는다. 실제 Jetson ROS 왕복, 실제 TCAD, 실제 Unity는 별도 실연동 시험이며 이 명령의 합격으로 대체하지 않는다.

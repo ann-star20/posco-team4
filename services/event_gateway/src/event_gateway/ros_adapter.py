@@ -19,6 +19,28 @@ from .dead_letters import record_dead_letter
 from .repository import EventConflict, EventRepository
 
 
+def store_ros_event(repository: EventRepository, event: EventCreate,
+                    run_id: str, settings: Settings):
+    run_uuid = UUID(run_id)
+    run_tcad_mode, _, _, baseline = repository.resolve_run(
+        run_uuid, settings.tcad_mode, settings.unity_mode)
+    if event.event_type != "correction.proposed":
+        return repository.ingest(event, run_uuid)
+    proposal = CorrectionProposal.model_validate(event.payload)
+    if proposal.run_id != run_uuid:
+        raise ValueError("proposal run_id mismatch")
+    if proposal.baseline_version != baseline:
+        raise ValueError("proposal baseline mismatch")
+    endpoint = (settings.tcad_mock_url if run_tcad_mode == "mock"
+                else settings.tcad_prod_url)
+    if not endpoint:
+        raise ValueError("TCAD endpoint for pinned run is missing")
+    return repository.ingest_proposal(
+        event, proposal, uuid5(event.event_id, "tcad-verification"),
+        run_tcad_mode, endpoint,
+    )
+
+
 class RosEventAdapter:
     def __init__(self, on_event, on_error):
         self.on_event = on_event
@@ -114,24 +136,7 @@ def main() -> None:
             try:
                 with psycopg.connect(settings.database_url, autocommit=True) as connection:
                     repository = EventRepository(connection, settings.ros_command_key)
-                    run_tcad_mode, _, _, baseline = repository.resolve_run(
-                        UUID(run_id), settings.tcad_mode, settings.unity_mode)
-                    if event.event_type == "correction.proposed":
-                        proposal = CorrectionProposal.model_validate(event.payload)
-                        if proposal.run_id != UUID(run_id):
-                            raise ValueError("proposal run_id mismatch")
-                        if proposal.baseline_version != baseline:
-                            raise ValueError("proposal baseline mismatch")
-                        endpoint = (settings.tcad_mock_url if run_tcad_mode == "mock"
-                                    else settings.tcad_prod_url)
-                        if not endpoint:
-                            raise ValueError("TCAD endpoint for pinned run is missing")
-                        receipt = repository.ingest_proposal(
-                            event, proposal, uuid5(event.event_id, "tcad-verification"),
-                            run_tcad_mode, endpoint,
-                        )
-                    else:
-                        receipt = repository.ingest(event, UUID(run_id))
+                    receipt = store_ros_event(repository, event, run_id, settings)
             except (ValueError, EventConflict, ValidationError, psycopg.IntegrityError) as exc:
                 try:
                     record_invalid(type(exc).__name__, raw)
