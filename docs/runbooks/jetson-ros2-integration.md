@@ -1,5 +1,7 @@
 # Jetson ROS 2 · Gateway · PostgreSQL 모의 통합 실행
 
+Jetson에서 한 건을 발행하고 Aiven DB 적재를 직접 확인하려면 [단계별 수동 확인 가이드](manual-ros2-aiven-check.md)를 먼저 따른다.
+
 ## 범위와 안전 경계
 
 이 절차는 가상 로트와 모의 TCAD/Unity 계약을 검증한다. 실제 ML, Silvaco, Unity 화면은 포함하지 않는다. Jetson의 JetPack, ROS 2, DDS, 네트워크, 시스템 Python 설정은 변경하지 않는다. Jetson에서는 `/home/jetson/project/smart_factory` 아래의 워크스페이스와 `data/`만 사용한다. 물리 장비 제어는 없다.
