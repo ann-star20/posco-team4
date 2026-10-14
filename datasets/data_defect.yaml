@@ -1,0 +1,8 @@
+path: C:\Users\교육생8\workspace\mosfet\datasets\dataset_defect
+train: images/train
+val: images/val
+
+names:
+  0: 'scratch'
+  1: 'crash'
+  2: 'bend'

@@ -1,0 +1,8 @@
+path: C:\Users\교육생8\workspace\mosfet\datasets\dataset_part
+train: images/train
+val: images/val
+
+names:
+  0: 'body'
+  1: 'lead'
+  2: 'tab'

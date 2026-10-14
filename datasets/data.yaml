@@ -1,0 +1,14 @@
+names:
+  0: body # 몸체/몰드 영역
+  1: lead # 다리
+  2: tab # 탭
+  3: text_model # 모델명 인쇄된 텍스트 영역 ROI
+  4: text_lot # 시리얼/로트 번호가 인쇄된 텍스트 영역 ROI
+  5: text_id # 부품 unique 번호가 인쇄된 텍스트 영역 ROI
+  6: scratch # 스크래치
+  7: crash # 손상
+  8: bend # 휘어짐
+path: /content/drive/MyDrive/posco_vision/datasets
+# path: ./datasets
+train: images/train
+val: images/val
