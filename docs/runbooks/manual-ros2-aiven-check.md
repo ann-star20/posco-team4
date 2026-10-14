@@ -24,7 +24,7 @@ source /opt/ros/humble/setup.bash
 # 이미 필요한 패키지가 설치된 WSL Python 환경이라면 생성·설치는 생략할 수 있다.
 python3 -m venv --system-site-packages "$HOME/posco-gateway-venv"
 source "$HOME/posco-gateway-venv/bin/activate"
-python -m pip install -e ./services/event_gateway
+python -m pip install --no-cache-dir -e ./services/event_gateway
 
 # 이후 실행 시에는 source "$HOME/posco-gateway-venv/bin/activate"부터 반복한다.
 python -c 'import rclpy, std_msgs, psycopg, pydantic; print("Python 의존성 확인")'
@@ -33,6 +33,8 @@ python -m event_gateway.ros_adapter
 ```
 
 `rclpy` import가 실패하면 기존 WSL ROS 환경의 Python 버전과 가상환경 Python이 같은지 확인한다. ROS 설치를 다시 하거나 Jetson의 시스템 설정을 바꾸지 않는다. `.env`는 브리지가 직접 읽는다. 이미 통신되던 `ROS_DOMAIN_ID`·`RMW_IMPLEMENTATION` 셸 환경을 그대로 유지한다.
+
+`Failed building editable for fab-event-gateway`가 나왔던 경우에는 현재 저장소의 `services/event_gateway/pyproject.toml`에 두 패키지 경로가 명시되어 있는지 확인하고 위 `pip install --no-cache-dir -e` 명령만 다시 실행한다. 가상환경을 삭제하거나 Jetson 설정을 바꿀 필요는 없다. 다시 실패하면 마지막 `Failed building` 줄보다 앞에 있는 첫 `ValueError` 또는 `error:`부터 오류를 확인한다.
 
 WSL 터미널 B에서는 ROS 환경을 소싱하고 ACK를 먼저 관찰한다.
 

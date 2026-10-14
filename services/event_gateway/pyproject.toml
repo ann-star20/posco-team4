@@ -26,6 +26,9 @@ test = [
   "pytest>=8.3,<9",
 ]
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/event_gateway", "src/mock_tcad"]
+
 [tool.pytest.ini_options]
 pythonpath = ["src", "../../jetson_ws/src/fab_virtual_lot", "../../tools/mock_unity"]
 testpaths = ["tests"]
