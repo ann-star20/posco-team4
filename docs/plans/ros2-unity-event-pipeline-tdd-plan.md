@@ -1,5 +1,7 @@
 # Durable ROS 2-to-Unity Event Pipeline Implementation Plan
 
+> 이전 계획 기록이다. 기존 Task 1 결과는 재사용하며, 후속 구현은 [한국어 최종 TDD 계획](jetson-tcad-unity-integration-tdd-plan.md)을 따른다.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build a loss-resistant vertical slice that accepts Jetson ROS 2 events, commits them once to PostgreSQL, and delivers or replays them to Unity.

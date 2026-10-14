@@ -1,309 +1,175 @@
-# Jetson ROS 2 · TCAD · PostgreSQL · Unity 통합 설계
+# Jetson ROS 2 · TCAD · Unity 통합 아키텍처
 
-작성일: 2026-10-14  
-상태: 검토 요청
+작성일: 2026-10-14
+상태: mock/prod 분리 최종 설계 — 구현·실장비 검증 전
+관련 문서: [최종 TDD 계획](../plans/jetson-tcad-unity-integration-tdd-plan.md), [DDL 명세](../database/integration-schema.md)
 
-## 1. 목적
+## 1. 현재 목표와 구현 경계
 
-가상 팹에서 Jetson Orin Nano가 생성한 이상 감지·진단·보정 후보를 Windows WSL Gateway가 수신하고, PostgreSQL에 영구 저장한 뒤 별도 워크스테이션의 TCAD로 검증 요청한다. TCAD 검증 결과와 보정 데이터는 다시 PostgreSQL에 저장한 후 Unity에 실시간 전달한다.
+Jetson → WSL ROS 2 수신 → PostgreSQL 저장 → TCAD HTTP 검증 → Unity WebSocket 전달을 검증한다.
+현재 TCAD와 Unity는 미완성이므로 기본 실행값은 각각 mock이다. 실제 ML 대신 명시적으로 표시한 가상 입력을 발행한다.
 
-## 2. 확정된 환경
+이번 구현은 Gateway, Jetson 테스트 노드, TCAD HTTP 모의 서버, Unity 역할의 Python 수신기, prod 어댑터와 계약 테스트를 포함한다.
+Silvaco 실행, 실제 ML, Unity C# 프로젝트·화면 구현은 후속 작업이다.
+prod 어댑터 구현 완료와 실제 TCAD·Unity 연동 검증 완료는 별도로 기록한다.
 
-- Jetson: Ubuntu 22.04, JetPack 6.2.1, ARM64
-- ROS 2: Jetson과 Windows WSL 사이 DDS 토픽 송수신 확인 완료
-- 확인 토픽: `/fab/events`, `std_msgs/msg/String`
-- Gateway: Windows WSL에서 ROS 2 토픽 구독, HTTP API 및 WebSocket 제공
-- PostgreSQL: Windows 측 로컬 컨테이너, 실제 접속 정보는 `.env`에서 관리
-- TCAD: 별도 워크스테이션에서 HTTP 서비스로 제공
-- Unity: Gateway의 HTTP API와 WebSocket만 사용
+## 2. 모드 플래그와 책임
 
-## 3. 설계 원칙
+| TCAD_MODE | UNITY_MODE | 실행 대상 | 완료 판정 |
+|---|---|---|---|
+| mock | mock | 모의 TCAD HTTP 서버 + 모의 Unity 수신기 | 현재 기본 인수 시험 |
+| prod | mock | 실제 TCAD HTTP 주소 + 모의 수신기 | TCAD 준비 후 시험 |
+| mock | prod | 모의 TCAD + 실제 Unity 연결 대기 | UI 통신만 시험, 운영 승인 차단 |
+| prod | prod | 실제 TCAD + 실제 Unity | 두 서비스 준비 후 인수 시험 |
 
-1. Jetson의 OS, JetPack, CUDA, ROS 2, DDS, 방화벽, 시스템 Python 설정을 변경하지 않는다.
-2. Jetson에서는 `/home/jetson/project/smart_factory` 아래의 프로젝트 파일만 생성·수정한다.
-3. 시스템 패키지 설치, `/opt/ros` 수정, systemd 등록은 별도 승인 없이는 수행하지 않는다.
-4. PostgreSQL이 영구 상태와 감사 기록의 단일 진실 원천이다.
-5. DB 커밋이 완료된 뒤에만 TCAD 요청 또는 Unity 알림을 진행한다.
-6. Unity와 Jetson은 PostgreSQL에 직접 접속하지 않는다.
-7. 비밀번호·IP·DB URL은 Git에 커밋하지 않고 `.env`로만 관리한다.
-8. 이벤트와 명령은 UUID로 멱등 처리한다.
+- 허용값은 정확히 mock 또는 prod이며 잘못된 값은 시작 오류다.
+- TCAD_MODE는 사용할 HTTP 주소를 선택한다. 두 모드 모두 같은 HTTP 클라이언트·스키마·worker를 사용한다.
+- UNITY_MODE는 수신 프로그램 실행 정책이다. mock은 Python 수신기를 실행하고 prod는 실제 Unity의 접속을 기다린다.
+- Gateway는 두 Unity 모드 모두 동일한 WebSocket **서버**다. Unity는 연결하는 클라이언트이며 별도 Unity 서버 URL을 가정하지 않는다.
+- prod 장애가 발생해도 mock으로 자동 전환하지 않는다.
+- 모드는 시작 시 확정한다. 재시작으로 바뀌더라도 기존 작업의 모드·대상 주소는 그대로 유지하며 새 작업에만 새 설정을 적용한다.
+- PostgreSQL과 ROS 연동은 mock 플래그 때문에 가짜로 대체하지 않는다. 단위 테스트의 임시 저장소는 별개다.
 
-## 4. 전체 구조
+## 3. 데이터 흐름
 
 ```mermaid
 flowchart LR
-  subgraph JT["Jetson Orin Nano"]
-    SIM["가상 로트/ML"] --> PUB["ROS 2 Publisher"]
-    CMD["ROS 2 Command Subscriber"] --> SIM
-  end
-
-  subgraph GW["Windows WSL"]
-    SUB["ROS 2 Gateway Node"] --> API["Event Gateway"]
-    API <--> PG[("PostgreSQL")]
-    API --> OUT["TCAD HTTP Client"]
-    API --> WS["Unity WebSocket"]
-  end
-
-  subgraph TW["TCAD 워크스테이션"]
-    TA["TCAD HTTP Service"] --> SIL["Silvaco TCAD"]
-  end
-
-  subgraph UP["Unity PC"]
-    UN["Unity 가상 팹"]
-  end
-
-  PUB -- "/fab/events" --> SUB
-  API -- "/fab/commands" --> CMD
-  OUT -- "HTTP 검증 요청/조회" --> TA
-  TA -- "HTTP 결과" --> API
-  WS -- "저장 완료 이벤트" --> UN
-  UN -- "HTTP 이상 주입/승인" --> API
+  J["Jetson 가상 Publisher + 로컬 발신함"] -->|"/fab/events"| G["WSL Gateway"]
+  G -->|"커밋 후 /fab/event_acks"| J
+  G --> D[("PostgreSQL")]
+  D --> W["영속 작업 Worker"]
+  W -->|"동일 HTTP 계약"| T["TCAD mock 서버 또는 실제 워크스테이션"]
+  T -->|"조회 결과"| W
+  W --> D
+  D --> S["이벤트 재생 / WebSocket 서버"]
+  S --> U["Unity mock 수신기 또는 실제 Unity"]
+  U -->|"사람 승인 HTTP"| G
+  G -->|"/fab/commands"| J
+  J -->|"correction.applied"| G
 ```
 
-## 5. 프로토콜 선택
+DB commit 이후 프로세스가 죽어도 DB에 남은 작업과 이벤트로 재개한다. 인메모리 알림 큐만으로 후속 처리를 보장하지 않는다.
 
-### ROS 2
+## 4. Jetson 보존 경계와 설정 보호
 
-Jetson과 WSL Gateway 사이의 실시간 이벤트 및 명령에 사용한다. DDS 연결이 이미 검증됐으므로 추가 네트워크 설정을 하지 않는다.
+기존 Ubuntu 22.04·JetPack 6.2.1·ROS 2 설치를 그대로 사용한다. 실제 ROS 배포판은 조회로 확인한다.
+ROS_DOMAIN_ID, RMW_IMPLEMENTATION은 **현재 세션 값 상속**이며 0으로 덮어쓰지 않는다.
+ROS·네트워크·방화벽·시스템 Python·서비스 설정 변경은 이번 작업 범위 밖이다.
+Jetson 파일은 /home/jetson/project/smart_factory 아래에만 둔다.
 
-- Jetson → Gateway: `/fab/events`
-- Gateway → Jetson: `/fab/commands`
-- 초기 메시지 타입: `std_msgs/msg/String` JSON
-- 스키마 안정화 후 전용 메시지 타입 전환 검토
+- 생산자는 UUID가 붙은 이벤트를 프로젝트 내부 SQLite 발신함에 먼저 커밋한 다음 ROS로 발행한다.
+- Gateway는 DB 커밋 후 /fab/event_acks에 event_id, run_id, sequence, status=committed를 보낸다.
+- ACK 전까지 재발행하며 재시작 후 미확인 이벤트를 복구한다. DDS의 reliable QoS만으로 디스크 보존을 주장하지 않는다.
+- SQLite는 Python 기본 sqlite3로 사용한다. 최종 영구 기록은 PostgreSQL이다.
+- 잘못된 이벤트는 성공 ACK 없이 거절 사유를 반환하고 생산자가 보존·격리한다.
+- 저장 장치 고장까지 무조건 무손실이라는 의미는 아니다. 디스크 부족 시 생산을 멈추고 오류를 표시한다.
+- 명령 적용도 가상 레시피 상태 변경과 command_id 처리 기록을 같은 로컬 트랜잭션으로 저장한다. 동일 명령은 재적용하지 않고 ACK만 반복한다.
 
-ROS 2 수신 자체는 영구 보존이 아니므로 Gateway는 이벤트를 수신하는 즉시 PostgreSQL에 저장한다.
+## 5. 공통 계약
 
-### HTTP
+공통 이벤트: schema_version=1, event_id(UUID), run_id(UUID), event_type, source, severity,
+occurred_at(시간대 포함), correlation_id, causation_id(선택), payload.
+Gateway가 sequence와 received_at을 부여한다. severity는 기존 events 계약과 동일하다.
+run_id는 실행 세션과 모드의 경계를 식별한다.
 
-Gateway와 별도 TCAD 워크스테이션 사이에 사용한다. TCAD 실행은 오래 걸릴 수 있으므로 동기 응답을 기다리지 않는 비동기 작업 API로 설계한다.
+X 키: oxide_thickness, body_dose, diffusion_time, epi_doping.
+Y 키: vth, gm, id_on, bv.
+representation=normalized_ratio로 시작하며 baseline_version을 반드시 기록한다.
+물리량 환산은 추후 TCAD 어댑터가 baseline_version별 단위·기준값 계약을 확보한 후 수행한다.
 
-### WebSocket
+- x_current: 현재 레시피 설정값. 이상 주입의 숨겨진 정답 노브와 구분한다.
+- delta_x: 기준값 대비 비율의 가산 변화량. 1.00에서 -0.03이면 권장값은 0.97이다.
+- x_candidate: x_current + delta_x, 절대 허용 오차 1e-9.
+- epi_doping은 제어 불가이므로 delta=0이고 후보는 현재값과 같다.
+- y_observed는 관측값, y_predicted는 선택적인 서로게이트 출력, y_verified는 검증 출력이다.
+- 입력은 유한한 수만 허용하며 NaN/Infinity를 거부한다. X는 양수다.
+- targets는 Y별 min/max와 단위를 포함한다. 실제 스펙 미확정 상태에서 예시 값을 실제 소자 기준으로 사용하지 않는다.
 
-Gateway가 PostgreSQL에 커밋된 상태 변경을 Unity에 실시간 전달할 때 사용한다. Unity 연결이 끊기면 마지막 `sequence` 이후 이벤트를 HTTP로 재조회한다.
+TCAD 성공은 계산 완료를 뜻한다. Gateway가 targets를 비교해 합격 여부를 별도로 판정한다.
+이번 범위는 네 출력 전체를 검증하며 하나라도 누락되면 verified로 만들지 않는다. IV/BV 단계 분리는 후속 확장이다.
 
-## 6. 처리 상태와 이벤트
+## 6. TCAD HTTP 계약과 mock
 
-| 순서 | 이벤트 | 의미 |
-|---:|---|---|
-| 1 | `anomaly.detected` | 측정 출력이 정상 범위를 벗어남 |
-| 2 | `diagnosis.completed` | 예상 원인과 확률 계산 완료 |
-| 3 | `correction.proposed` | 제어 가능한 노브의 보정 후보 생성 |
-| 4 | `verification.requested` | TCAD 작업 생성 및 요청 준비 |
-| 5 | `verification.accepted` | TCAD가 작업을 접수하고 `job_id` 반환 |
-| 6 | `verification.completed` | TCAD 계산 결과 수신 |
-| 7 | `correction.verified` | 출력 스펙을 모두 만족한 후보 |
-| 8 | `correction.rejected` | TCAD 검증에 실패한 후보 |
-| 9 | `correction.approved` | 사람이 검증된 보정안을 승인 |
-| 10 | `correction.applied` | 다음 가상 로트 설정에 반영 완료 |
+POST /api/v1/verifications: request_id, proposal_id, run_id, representation, baseline_version,
+x_current, delta_x, x_candidate, y_observed, targets, model_version, deck_template_version.
+응답 202: job_id와 request_id. 동일 ID·동일 내용은 같은 job_id, 다른 내용은 409.
+GET /api/v1/verifications/{job_id}: queued/running/succeeded/failed.
+성공 결과에는 request_id, job_id, y_verified, result_origin(mock/prod), deck_template_version이 필요하다.
+Gateway는 ID와 저장된 모드가 일치하는지 확인한다. prod 작업에 mock 결과가 오면 거부한다.
 
-각 이벤트는 `event_id`, `correlation_id`, `causation_id`, `occurred_at`, `source`, `payload`를 가진다. `correlation_id`는 하나의 로트 진단·보정·검증 흐름 전체에서 유지한다.
+mock 서버는 고정된 fixture와 seed로 재현 가능한 결과를 반환한다. 물리 모델이나 원인 진단 모델이 아니다.
+시나리오: pass, out_of_spec, timeout, server_error, malformed_response.
+모의 서버도 요청 ID 매핑을 로컬 SQLite에 보존해 재시작 후 같은 요청이 다른 작업으로 바뀌지 않게 한다.
+HTTP 클라이언트의 timeout·5xx는 재시도, 계약 오류·409는 운영자 확인이 필요한 실패로 기록한다.
 
-## 7. 공정 변수 계약
+## 7. 작업 복구와 결과 출처
 
-혼동을 피하기 위해 입력과 출력을 분리한다.
+proposal → queued → running → verified/rejected/failed.
+out_of_spec은 rejected, HTTP 계약 실패나 계산 실패는 failed로 구분한다.
 
-- `x_current`: 현재 공정 노브
-- `delta_x`: 보정 변화량
-- `x_candidate`: TCAD에 적용할 후보값 (`x_current + delta_x`)
-- `y_observed`: 이상 로트에서 관측한 출력
-- `y_predicted`: 서로게이트가 후보에 대해 예측한 출력
-- `y_verified`: TCAD가 계산한 출력
-- `targets`: 합격 범위
+작업 claim은 짧은 트랜잭션에서 lease_token·lease_until을 기록하고 커밋한다.
+HTTP 대기 중 DB 잠금을 유지하지 않는다. 만료 lease는 재시도하며 오래된 worker 결과는 토큰 비교로 거부한다.
+수신 결과·보정안 상태·감사 이벤트는 하나의 트랜잭션이다.
 
-공정 노브의 API 키는 다음으로 고정한다.
+mock 결과에도 result_origin=mock을 저장한다.
+가상 입력은 input_origin=synthetic으로 기록하고 prod TCAD를 사용해도 실측 검증이라고 표시하지 않는다.
+UNITY_MODE=prod에서는 mock 검증 결과의 승인을 거부한다.
+mock/mock에서는 사람이 demo 승인을 요청할 수 있으나 명령 scope=simulation만 허용한다.
+모든 승인은 사람 입력으로만 수행한다.
 
-- `oxide_thickness`
-- `body_dose`
-- `diffusion_time`
-- `epi_doping`
+## 8. Unity 전달·재생
 
-출력 키는 `vth`, `gm`, `id_on`, `bv`로 고정한다. 값은 물리 단위와 기준값 대비 비율을 혼용하지 않는다. 초기 데모가 비율을 사용하면 모든 값에 `representation: "normalized_ratio"`를 명시한다.
+Gateway: GET /api/v1/events?run_id=...&after_sequence=...&limit=200, WS /api/v1/stream?run_id=...&after_sequence=...
+페이지 한도 1..1000. 두 경로는 같은 커밋 이벤트 저장소를 읽는다.
+Unity mock은 실제 WebSocket에 접속해 받은 보정값과 출처를 확인하고 커서를 파일에 저장한다.
 
-## 8. ROS 2 이벤트 예시
+- sequence는 연속 번호가 아니다. rollback이나 run 필터로 생긴 빈 번호를 누락으로 간주하지 않는다.
+- 단순 identity는 동시 트랜잭션의 커밋 순서를 보장하지 않는다. 모든 이벤트 쓰기는 공통 트랜잭션 advisory lock 획득 후 sequence를 할당한다.
+- 이 초기 직렬화 규칙을 지키는 이벤트만 커서 기반 전달 대상으로 한다. 다중 worker 우회 삽입을 허용하지 않는다.
+- 스트림은 DB를 커서 기반으로 반복 조회한다. 선택적 알림은 깨우는 신호일 뿐 DB 기록을 대체하지 않는다.
+- 연결 재시작·커밋 직후 Gateway 종료에도 DB에서 다시 읽는다. 느린 수신자는 연결을 끊고 재생하도록 한다.
 
-```json
-{
-  "schema_version": 1,
-  "event_id": "0199f0a4-5a8c-7b8e-9c10-0123456789ab",
-  "event_type": "correction.proposed",
-  "source": "jetson.correction_agent",
-  "occurred_at": "2026-10-14T06:30:00.123Z",
-  "correlation_id": "LOT-2026-0012",
-  "causation_id": "0199f09f-1111-7222-8333-444444444444",
-  "payload": {
-    "representation": "normalized_ratio",
-    "expected_causes": [
-      {"name": "body_dose_shift", "probability": 0.82}
-    ],
-    "x_current": {
-      "oxide_thickness": 1.0,
-      "body_dose": 1.0,
-      "diffusion_time": 1.0,
-      "epi_doping": 1.0
-    },
-    "delta_x": {
-      "oxide_thickness": -0.03,
-      "body_dose": 0.05,
-      "diffusion_time": 0.0,
-      "epi_doping": 0.0
-    },
-    "x_candidate": {
-      "oxide_thickness": 0.97,
-      "body_dose": 1.05,
-      "diffusion_time": 1.0,
-      "epi_doping": 1.0
-    },
-    "y_observed": {
-      "vth": 1.08,
-      "gm": 0.94,
-      "id_on": 0.91,
-      "bv": 0.99
-    }
-  }
-}
-```
+## 9. .env 계약
 
-## 9. TCAD 비동기 HTTP 계약
-
-### 작업 요청
-
-`POST ${TCAD_API_URL}/api/v1/verifications`
-
-Gateway는 `correction.proposed`와 `verification.requested`를 하나의 DB 트랜잭션으로 저장한 뒤 TCAD를 호출한다.
-
-```json
-{
-  "request_id": "0199f0b0-1111-7222-8333-555555555555",
-  "correlation_id": "LOT-2026-0012",
-  "device": "AOD4184A",
-  "representation": "normalized_ratio",
-  "x_current": {},
-  "delta_x": {},
-  "x_candidate": {},
-  "y_observed": {},
-  "targets": {},
-  "model_version": "surrogate-2026-10-14",
-  "deck_template_version": "aod4184a-v1"
-}
-```
-
-TCAD 서비스는 계산을 기다리지 않고 `202 Accepted`와 `job_id`를 반환한다. 동일 `request_id` 재요청은 같은 작업을 반환한다.
-
-### 결과 조회
-
-`GET ${TCAD_API_URL}/api/v1/verifications/{job_id}`
-
-상태는 `queued`, `running`, `succeeded`, `failed` 중 하나다. `succeeded`이면 `y_verified`, 실행 시간, deck 버전, 로그 참조를 반환한다. Gateway는 백오프 폴링으로 결과를 조회한다. 콜백은 인증 설계가 확정될 때까지 사용하지 않는다.
-
-## 10. Unity 전달 계약
-
-Unity에는 TCAD 요청 전의 잠정 후보와 검증 완료 결과를 구분해 보낸다.
-
-- `correction.proposed`: UI에 “검증 중”으로 표시하며 승인 불가
-- `correction.verified`: 현재값, 변화량, 권장값, TCAD 출력 표시 및 승인 가능
-- `correction.rejected`: 실패 원인과 TCAD 출력 표시, 승인 불가
-
-Unity는 ROS 2에 참여하지 않는다. Gateway WebSocket의 커밋 완료 이벤트만 받고, 명령은 Gateway HTTP API로 보낸다.
-
-## 11. 승인과 Jetson 명령
-
-Unity가 `verified` 보정안을 승인하면 Gateway가 승인 내역을 DB에 먼저 저장한 뒤 `/fab/commands`에 다음 명령을 발행한다.
-
-```json
-{
-  "schema_version": 1,
-  "command_id": "0199f0c0-1111-7222-8333-666666666666",
-  "command_type": "correction.apply",
-  "correlation_id": "LOT-2026-0012",
-  "proposal_id": "0199f0b0-aaaa-bbbb-cccc-777777777777",
-  "x_candidate": {},
-  "effective_from_lot": "LOT-2026-0013"
-}
-```
-
-Jetson은 적용 후 같은 `command_id`를 포함한 `correction.applied` 이벤트를 `/fab/events`로 회신한다. Gateway는 회신 전까지 명령을 완료로 처리하지 않는다.
-
-## 12. 환경변수와 비밀 관리
-
-실제 값은 저장소 루트의 `.env`에만 두고 `.gitignore`로 제외한다. Git에는 `.env.example`만 포함한다.
+실제 값은 각 호스트의 로컬 .env에 보관하며 Git에는 .env.example만 둔다.
+Jetson SSH 비밀번호나 DB URL 전체를 문서·로그·테스트 실패 출력에 노출하지 않는다.
+Jetson 배포 파일에는 DB·TCAD 자격 증명을 복사하지 않는다.
 
 ```dotenv
-# Windows/WSL Gateway
-DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DATABASE
-GATEWAY_HTTP_HOST=0.0.0.0
-GATEWAY_HTTP_PORT=8000
-UNITY_WS_PATH=/api/v1/stream
-
-# TCAD workstation
-TCAD_API_URL=http://TCAD_HOST:PORT
-TCAD_REQUEST_TIMEOUT_SECONDS=10
+TCAD_MODE=mock
+UNITY_MODE=mock
+TCAD_MOCK_URL=http://127.0.0.1:8100
+TCAD_PROD_URL=
+TCAD_MOCK_SCENARIO=pass
+TCAD_MOCK_SEED=42
+TCAD_HTTP_TIMEOUT_SECONDS=10
 TCAD_POLL_INTERVAL_SECONDS=5
-
-# ROS 2
-ROS_DOMAIN_ID=0
+DATABASE_URL=
+TEST_DATABASE_URL=
+GATEWAY_HOST=0.0.0.0
+GATEWAY_PORT=8000
+UNITY_GATEWAY_WS_URL=ws://127.0.0.1:8000/api/v1/stream
 ROS_EVENT_TOPIC=/fab/events
+ROS_EVENT_ACK_TOPIC=/fab/event_acks
 ROS_COMMAND_TOPIC=/fab/commands
-
-# SSH deployment; local operator use only
-JETSON_HOST=JETSON_CURRENT_IP
-JETSON_USER=JETSON_USER
-JETSON_PASSWORD=LOCAL_SECRET_ONLY
+# ROS_DOMAIN_ID와 RMW_IMPLEMENTATION은 기존 셸 환경 상속
+JETSON_HOST=
+JETSON_USER=
+JETSON_PASSWORD=
 JETSON_PROJECT_PATH=/home/jetson/project/smart_factory
 ```
 
-문서와 로그에는 `DATABASE_URL`, `JETSON_PASSWORD`의 실제 값을 출력하지 않는다. Jetson IP가 바뀌면 `.env`의 `JETSON_HOST`만 변경한다. 장기적으로 SSH 키 인증으로 전환하되 이번 범위에서 Jetson SSH 설정은 변경하지 않는다.
+prod 선택 시 TCAD_PROD_URL이 비어 있으면 시작을 거부한다. 실제 주소를 추측하지 않는다.
+WSL에서 Windows PostgreSQL 접근 주소는 현재 네트워크 모드에서 조회·연결 시험으로 확인한다.
+기존 postgres-db 컨테이너를 재사용하며 동일 55432 포트로 Compose를 동시에 기동하지 않는다.
+테스트는 별도 TEST_DATABASE_URL과 임시 스키마에서 수행한다.
 
-## 13. DB 추가 모델
+## 10. 구현·검증 범위
 
-기존 `events`에 더해 다음 테이블을 둔다.
+현재 필수: mock/mock E2E, 실제 PostgreSQL, Jetson↔WSL 이벤트와 ACK, timeout·재시작·중복·모드 전환 시험.
+현재 가능한 prod 검증: 로컬 계약 서버로 prod 어댑터 선택·주소·응답 검증·실패 처리 시험.
+나중 검증: 실제 TCAD deck/API 연동, 실제 Unity 클라이언트 표시·승인.
+실제 서비스가 없다는 이유로 mock 성공을 prod 실연동 통과로 보고하지 않는다.
 
-- `correction_proposals`: `x_current`, `delta_x`, `x_candidate`, 예측 출력과 상태
-- `verification_jobs`: TCAD `request_id`, `job_id`, 요청·결과 JSON, 상태, 재시도 시각
-- `commands`: Unity 승인으로 생성된 Jetson 명령, 발행·확인 상태
-
-도메인 행 변경과 감사 이벤트 삽입은 같은 PostgreSQL 트랜잭션으로 처리한다.
-
-## 14. 장애 처리
-
-- 잘못된 ROS JSON: DB에 저장하지 않고 구조화 로그 기록, 다음 메시지 계속 처리
-- 동일 `event_id`: 내용이 같으면 기존 `sequence` 반환, 다르면 충돌 기록
-- TCAD 연결 실패: DB 작업을 `queued`로 유지하고 백오프 재시도
-- TCAD 응답 유실: 동일 `request_id`로 재요청 또는 `job_id` 조회
-- Gateway 재시작: DB의 `queued`·`running` 검증 작업을 재개
-- Unity 단절: DB에는 영향 없음, 재연결 후 `sequence` 기반 누락 복구
-- ROS 명령 유실: `commands`의 미확인 항목을 재발행하고 `command_id`로 중복 적용 방지
-
-## 15. Jetson 안전 배포 절차
-
-1. 읽기 전용으로 OS, ROS 2, 토픽, 디스크 공간, 프로젝트 경로 확인
-2. 기존 프로젝트 파일 목록과 Git 상태 확인
-3. `/home/jetson/project/smart_factory` 밖에는 쓰지 않음
-4. 기존 파일을 덮어써야 하면 diff를 제시하고 승인 후 변경
-5. `colcon build --packages-select <package>`로 대상 패키지만 빌드
-6. 임시 셸에서만 `source install/setup.bash`
-7. 테스트 publisher/subscriber로 통신 검증
-8. 재부팅·서비스 등록·시스템 설정 변경은 수행하지 않음
-
-## 16. TDD 완료 기준
-
-1. Jetson publisher의 정상 JSON이 WSL Gateway를 거쳐 PostgreSQL에 한 번 저장된다.
-2. 잘못된 메시지 뒤에도 다음 정상 메시지를 처리한다.
-3. 동일 이벤트 재수신 시 중복 행이 생기지 않는다.
-4. 보정 후보 저장 후 TCAD 작업이 `202`로 접수된다.
-5. TCAD가 중단됐다가 복구돼도 작업이 재개된다.
-6. 검증 결과가 DB에 저장된 뒤 Unity에 전달된다.
-7. Unity는 `verified`가 아닌 보정안을 승인할 수 없다.
-8. 승인 명령이 Jetson에 전달되고 동일 `command_id`는 한 번만 적용된다.
-9. Jetson 시스템 설정 변경 없이 프로젝트 경로의 코드만으로 전체 데모가 동작한다.
-
-## 17. 구현 순서
-
-1. `.env.example`과 설정 로더
-2. ROS 2 이벤트·명령 계약
-3. WSL ROS 2 subscriber와 PostgreSQL 저장
-4. TCAD 작업 테이블과 비동기 HTTP 클라이언트
-5. TCAD 결과 처리와 보정 상태 전이
-6. Gateway WebSocket과 Unity 보정 데이터 계약
-7. Unity 승인 API와 ROS 2 command publisher
-8. Jetson command subscriber와 적용 ACK
-9. 실제 Jetson·TCAD mock·Unity mock 통합 시험
+DDL은 [DB 변경 명세](../database/integration-schema.md)에 정의한다. 이번 문서 수정에서 DB를 변경하지 않는다.
+기존 feat/event-contract의 구현을 이어받고 초기 DDL과 계약을 처음부터 재작성하지 않는다.

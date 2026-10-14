@@ -1,5 +1,7 @@
 # 가상 팹 ROS 2 이벤트 파이프라인 설계
 
+> 이전 HTTP 브리지 설계 기록이다. 현재 구현 기준은 [mock/prod 통합 아키텍처](jetson-ros2-tcad-unity-integration.md)이며, 충돌 시 새 문서를 따른다.
+
 작성일: 2026-10-14  
 상태: 검토 요청  
 범위: Jetson Orin Nano의 ROS 2 이벤트를 PostgreSQL에 보존하고 Unity에 실시간 전달
