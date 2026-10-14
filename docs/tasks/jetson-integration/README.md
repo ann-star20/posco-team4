@@ -1,7 +1,9 @@
 # 태스크별 코딩 안내
 
 [최종 계획](../../plans/jetson-tcad-unity-integration-tdd-plan.md)을 먼저 읽고 아래 순서대로 구현한다.
-문서 상태는 모두 구현 전이다. 각 태스크의 테스트를 먼저 실패시키고 구현 후 통과 여부를 기록한다.
+코드는 `feat/jetson-mock-integration`에서 구현 중이다. 아래 체크박스는 각 태스크 문서의 모든 완료 기준(실제 장비 및 복구 인수 시험 포함)을 만족했을 때만 체크한다. 현재는 전체 기준 미충족이므로 미체크를 유지한다.
+
+현재 확인한 범위: 설정 4모드 단위 시험, PostgreSQL 001/002/003과 임시 스키마 통합 시험, ROS 발신함/명령 멱등 단위 시험, 승인·적용 ACK DB 통합 시험. 최신 검증은 42 passed, 로컬 소켓 시험 3개 제외(호스트 Windows `socket.socketpair()` 오류)이다. 세 시험은 앞선 실행에서 각각 통과했으나 최신 코드 기준 재검증이 필요하다. 실제 Jetson 설치/ROS 왕복과 전체 재시작 E2E는 미실행이다. [실행 안내](../../runbooks/jetson-ros2-integration.md)를 참고한다.
 
 - [ ] [01 설정과 실행 모드](01-configuration.md)
 - [ ] [02 공통 이벤트·보정·HTTP 계약](02-contracts.md)

@@ -1,6 +1,6 @@
 # 태스크 03: 추가 DDL과 멱등 저장
 
-상태: 구현 전
+상태: 일부 구현 / 전체 완료 기준 검토 중
 선행 작업: 01, 02
 기준: [최종 계획](../../plans/jetson-tcad-unity-integration-tdd-plan.md), [아키텍처](../../architecture/jetson-ros2-tcad-unity-integration.md)
 

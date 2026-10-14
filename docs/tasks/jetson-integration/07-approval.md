@@ -1,6 +1,6 @@
 # 태스크 07: 가상 승인과 Jetson 보정 적용
 
-상태: 구현 전
+상태: 일부 구현 / 실제 Jetson 적용 왕복 미검증
 선행 작업: 04~06
 기준: [최종 계획](../../plans/jetson-tcad-unity-integration-tdd-plan.md), [아키텍처](../../architecture/jetson-ros2-tcad-unity-integration.md)
 

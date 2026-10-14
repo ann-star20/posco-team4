@@ -1,6 +1,6 @@
 # 태스크 02: 공통 이벤트·보정·HTTP 계약
 
-상태: 구현 전
+상태: 일부 구현 / 전체 완료 기준 검토 중
 선행 작업: 01
 기준: [최종 계획](../../plans/jetson-tcad-unity-integration-tdd-plan.md), [아키텍처](../../architecture/jetson-ros2-tcad-unity-integration.md)
 

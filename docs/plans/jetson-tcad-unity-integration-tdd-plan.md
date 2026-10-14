@@ -1,7 +1,7 @@
 # Jetson · TCAD · Unity 최종 TDD 구현 계획
 
 작성일: 2026-10-14
-상태: 코딩용 최종 계획 / 코드·DB 반영은 아직 진행 전
+상태: 구현 진행 중 / 실제 Jetson·TCAD·Unity 실연동은 미검증
 언어: 문서·설명은 한국어, 코드 식별자·프로토콜은 원문 유지
 
 ## 목표
@@ -9,6 +9,8 @@
 TCAD와 Unity가 없어도 mock/mock으로 Jetson→ROS 2→Gateway→PostgreSQL→HTTP 검증→WebSocket 결과 전달을 시험한다.
 두 서비스가 준비되면 TCAD_MODE와 UNITY_MODE를 각각 prod로 바꿔 같은 계약으로 연결한다.
 현재 단계에서는 실제 Silvaco 실행과 Unity 화면 구현을 완료 조건에 넣지 않는다.
+
+2026-10-14 구현 기록: `feat/jetson-mock-integration`에서 설정·계약·DDL·ROS 발신함/브리지·모의 TCAD·Gateway WebSocket·가상 승인/서명 명령·dead-letter 코드를 작성했다. 개발 PostgreSQL의 기존 `events` 구조를 검증해 001 이력을 채택하고 002/003을 적용했다. 최신 검증은 42개 통과, 로컬 소켓 시험 3개는 현재 Windows 실행 환경의 `socket.socketpair()` 오류로 미검증이다. 세 시험은 이전 실행에서 각각 통과했으나 최신 코드 전체 통과로 표시하지 않는다. 실제 Jetson 패키지 배포/ROS 왕복, 서비스 재시작 E2E, 실제 TCAD/Unity 연동은 아직 수행하지 않았다.
 
 기준 문서:
 

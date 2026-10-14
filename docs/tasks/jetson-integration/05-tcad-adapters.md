@@ -1,6 +1,6 @@
 # 태스크 05: TCAD mock HTTP 서버와 prod 클라이언트
 
-상태: 구현 전
+상태: 일부 구현 / 실제 TCAD 미검증
 선행 작업: 01~03
 기준: [최종 계획](../../plans/jetson-tcad-unity-integration-tdd-plan.md), [아키텍처](../../architecture/jetson-ros2-tcad-unity-integration.md)
 

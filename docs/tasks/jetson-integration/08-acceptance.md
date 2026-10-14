@@ -1,6 +1,6 @@
 # 태스크 08: 모드별 인수 시험과 배포 안내
 
-상태: 구현 전
+상태: 일부 구현 / 장비·재시작 인수 시험 미실행
 선행 작업: 01~07
 기준: [최종 계획](../../plans/jetson-tcad-unity-integration-tdd-plan.md), [아키텍처](../../architecture/jetson-ros2-tcad-unity-integration.md)
 

@@ -1,6 +1,6 @@
 # 태스크 06: Unity 모의 수신기와 공통 WebSocket
 
-상태: 구현 전
+상태: 일부 구현 / 실제 Unity 미검증
 선행 작업: 03, 05
 기준: [최종 계획](../../plans/jetson-tcad-unity-integration-tdd-plan.md), [아키텍처](../../architecture/jetson-ros2-tcad-unity-integration.md)
 

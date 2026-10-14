@@ -1,6 +1,6 @@
 # 태스크 01: 설정과 실행 모드
 
-상태: 구현 전
+상태: 일부 구현 / 전체 완료 기준 검토 중
 선행 작업: 기존 feat/event-contract 코드와 문서 브랜치를 기능 브랜치에 통합한 상태
 기준: [최종 계획](../../plans/jetson-tcad-unity-integration-tdd-plan.md), [아키텍처](../../architecture/jetson-ros2-tcad-unity-integration.md)
 
