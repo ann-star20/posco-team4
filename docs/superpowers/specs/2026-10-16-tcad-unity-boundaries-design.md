@@ -17,7 +17,7 @@
 
 ## 결정과 대안
 
-선택: Gateway와 mock TCAD를 유지하고, 실제 워크스테이션 배포용 HTTP 서비스 틀을 별도 패키지로 둔다. 기존 `TCAD_MODE=mock|prod`와 `TCAD_PROD_URL`이 대상 선택을 담당한다. 이 구조는 mock fixture와 미래 Silvaco 실행 코드를 물리적으로 분리한다.
+선택: Gateway와 mock TCAD를 유지하고, 실제 워크스테이션 배포용 HTTP 서비스 틀을 별도 패키지로 둔다. 기존 `TCAD_MODE=mock|prod`와 모드별 URL이 대상 선택을 담당한다. 이 구조는 mock fixture와 미래 Silvaco 실행 코드를 물리적으로 분리한다. `mock`은 데이터·계산 결과의 출처를 뜻하며, HTTP/WebSocket을 메모리 함수 호출로 대체한다는 뜻이 아니다.
 
 대안 1: 기존 mock TCAD 서버에 prod 로직을 추가한다. 파일 수는 줄지만 테스트 fixture가 실제 계산 경로로 섞일 위험이 있어 선택하지 않는다. 대안 2: TCAD 서비스를 만들기 전까지 문서와 클라이언트만 유지한다. 실제 워크스테이션에서 서버 기동·연결을 미리 검증할 수 없어 선택하지 않는다.
 
@@ -85,9 +85,15 @@ flowchart LR
 
 Gateway의 기존 `TcadClient`는 동일 계약을 사용한다. `TCAD_MODE=prod`에서는 `TCAD_PROD_URL`이 필수이며 mock으로 자동 전환하지 않는다. 워크스테이션에서 서비스는 해당 호스트의 로컬 설정으로 바인드 주소·포트를 선택한다. 외부 접속·TLS·인증은 실제 서비스 배포 전에 별도로 확정해야 하며 현재 틀을 공용 인터넷에 공개하지 않는다. 실제 URL이나 인증 비밀은 예시 문서에 넣지 않는다.
 
+통신 시험은 제3의 모드 플래그 없이 수행한다. 기존 mock TCAD HTTP 서버를 별도 워크스테이션에서 실행하고 Gateway의 `TCAD_MODE=mock`, `TCAD_MOCK_URL=http://<해당 호스트>:<포트>`로 지정한다. 이때 Gateway→워크스테이션의 실제 네트워크, 실제 HTTP 요청/응답, 작업 ID와 결과 계약을 시험하면서도 결과에는 `result_origin=mock`이 남는다. mock 서버의 바인드 호스트·포트는 워크스테이션의 로컬 환경변수로 지정할 수 있어야 한다. 공용 인터넷에 노출하지 않고 시험망에서만 사용한다.
+
+실제 서비스 틀은 `TCAD_MODE=prod`, `TCAD_PROD_URL`로 접근해 `/health/live`의 네트워크 도달성과 `/health/ready`의 백엔드 미준비를 각각 시험할 수 있다. Silvaco가 없으면 POST는 503이며 검증 E2E 성공이라고 판단하지 않는다. `prod`로 접속한 mock 결과를 진짜 계산으로 승격하는 우회 플래그는 만들지 않는다.
+
 ## Unity WebSocket 경계
 
 기존 Gateway가 `/api/v1/stream?run_id=<UUID>&after_sequence=<정수>`를 제공하고 Python mock Unity가 접속해 커서를 로컬에 저장한다. `GET /api/v1/events`는 같은 Aiven 기록의 재생 경로다. `UNITY_MODE=prod`는 실제 Unity 연결 준비를 나타내는 정책 플래그이지 별도 WebSocket 서버를 생성하지 않는다. 이 단계에서 Unity C# 클라이언트, 화면, 이상 주입 UI는 만들지 않는다. 기존 구현에 없는 이상 주입 HTTP API가 있는 것처럼 문서화하지 않는다.
+
+Unity 통신 시험 역시 제3의 플래그 없이 한다. Gateway는 WSL에서 실제 WebSocket 서버를 실행하고 Python mock Unity를 다른 PC에서 실행해 `UNITY_GATEWAY_WS_URL=ws://<Gateway 호스트>:<포트>/api/v1/stream`으로 연결한다. 실제 TCP/WebSocket 연결, 이벤트 JSON, `sequence` 커서 저장과 재접속 재생을 확인한다. `UNITY_MODE=mock`을 유지하므로 mock TCAD 결과를 실제 Unity 운영 승인으로 오인하지 않는다. Unity 앱 준비 후에는 같은 URL·메시지 계약을 사용하며, 배포 시 필요한 보안·접속 설정은 별도로 검토한다.
 
 ## 실패와 안전 경계
 
@@ -101,7 +107,7 @@ Gateway의 기존 `TcadClient`는 동일 계약을 사용한다. `TCAD_MODE=prod
 
 1. 현행 아키텍처 문서에서 WSL 내부 PostgreSQL·Windows 로컬 Docker 언급을 Aiven Cloud 기준으로 바로잡고 구성도, 실행 프로세스, mock/prod 경계를 갱신한다. 이전 HTTP 브리지 설계 문서는 역사 문서로 남긴다.
 2. 한국어 테스트 runbook에 WSL Gateway, ACK 관찰, Jetson 발행기, Aiven 조회의 정확한 터미널·시작 순서를 적는다. 수동 `ros2 topic pub --once`의 이벤트 유실 가능성과 발행기 SQLite 재전송의 차이를 구분한다.
-3. TDD에서 독립 TCAD 서비스의 미준비 응답, 기존 클라이언트의 503 처리, Gateway WebSocket의 DB 커서 재생, ACK 계약과 발신함 완료를 각각 검증한다. 실제 Jetson·Silvaco·Unity 연결 여부는 자동 테스트 통과와 별도로 보고한다.
+3. TDD에서 독립 TCAD 서비스의 미준비 응답, 기존 클라이언트의 503 처리, Gateway WebSocket의 DB 커서 재생, ACK 계약과 발신함 완료를 각각 검증한다. 실행 절차는 (a) 한 호스트의 mock 계약 시험, (b) 다른 호스트에 mock TCAD·mock Unity를 띄운 실제 HTTP/WebSocket 통신 시험, (c) prod 서비스 틀의 도달성·미준비 확인을 구분한다. 실제 Silvaco·Unity 앱 연결 여부는 mock 통신 시험 통과와 별도로 보고한다.
 
 ## 범위 밖
 
