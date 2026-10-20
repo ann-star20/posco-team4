@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import json
 from queue import Empty, Full, Queue
 from threading import Event, Lock, Thread
+from time import monotonic, sleep
 from typing import Callable
 
 import cv2
@@ -156,6 +157,7 @@ class CameraPreviewService:
         return request
 
     def _encode_loop(self) -> None:
+        next_encode_at = 0.0
         while not self._closed.is_set():
             try:
                 frame = self._incoming.get(timeout=.1)
@@ -163,6 +165,17 @@ class CameraPreviewService:
                 continue
             if frame is None:
                 break
+            delay = next_encode_at - monotonic()
+            if delay > 0:
+                sleep(delay)
+                while True:
+                    try:
+                        newer = self._incoming.get_nowait()
+                    except Empty:
+                        break
+                    if newer is None:
+                        return
+                    frame = newer
             with self._lock:
                 clients = tuple(self._clients.values())
             if not clients:
@@ -172,6 +185,7 @@ class CameraPreviewService:
                 continue
             with self._lock:
                 self._encoded_frames += 1
+            next_encode_at = monotonic() + (1.0 / self.settings.fps)
             for client in clients:
                 if client.outgoing.full():
                     with self._lock:

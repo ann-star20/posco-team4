@@ -125,3 +125,28 @@ def test_slow_client_receives_latest_pending_frame_only():
     assert delivered_ids[0] == 1
     assert delivered_ids[-1] == 4
     assert len(delivered_ids) <= 3
+
+
+def test_preview_limits_encoding_rate_and_keeps_latest_frame():
+    encoded_ids = []
+
+    def encode(frame, _settings):
+        encoded_ids.append(frame.frame_id)
+        return ({"type": "camera.preview.frame", "frame_id": frame.frame_id}, b"jpeg")
+
+    limited = PreviewSettings("camera-1", "preview-secret", 16, 12, 20, 75, 2)
+    service = CameraPreviewService(limited, encoder=encode)
+    service.start()
+    websocket = FakeWebSocket()
+    thread = Thread(target=service.handle, args=(websocket,), daemon=True)
+    thread.start()
+    wait_until(lambda: service.stats().subscriber_count == 1)
+    service.publish(make_frame(1))
+    wait_until(lambda: encoded_ids == [1])
+    for frame_id in range(2, 7):
+        service.publish(make_frame(frame_id))
+    time.sleep(.02)
+    assert encoded_ids == [1]
+    wait_until(lambda: encoded_ids[-1] == 6)
+    service.close()
+    thread.join(1)
