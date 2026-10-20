@@ -84,7 +84,7 @@ Add tests named `test_event_create_accepts_version_one`, `test_event_create_reje
 
 - [ ] **Step 2: Run contract tests and confirm failure**
 
-Run: `python -m pytest services/event_gateway/tests/unit/test_contracts.py -v`  
+Run: `python -m pytest services/event_gateway/tests/unit/test_contracts.py -v`
 Expected: FAIL because `event_gateway.contracts` does not exist.
 
 - [ ] **Step 3: Implement the contract types**
@@ -93,7 +93,7 @@ Define `Severity = Literal["debug", "info", "warning", "error", "critical"]`, `E
 
 - [ ] **Step 4: Run contract tests and confirm pass**
 
-Run: `python -m pytest services/event_gateway/tests/unit/test_contracts.py -v`  
+Run: `python -m pytest services/event_gateway/tests/unit/test_contracts.py -v`
 Expected: PASS.
 
 - [ ] **Step 5: Write failing migration test**
@@ -102,7 +102,7 @@ Add `test_events_migration_enforces_unique_event_id_and_server_sequence`. Apply 
 
 - [ ] **Step 6: Run migration test and confirm failure**
 
-Run: `python -m pytest services/event_gateway/tests/integration/test_events_migration.py -v`  
+Run: `python -m pytest services/event_gateway/tests/integration/test_events_migration.py -v`
 Expected: FAIL because the migration is absent.
 
 - [ ] **Step 7: Implement the SQL migration and development Compose service**
@@ -111,7 +111,7 @@ Create the table and three indexes exactly as specified in the design. Configure
 
 - [ ] **Step 8: Run Task 1 tests**
 
-Run: `python -m pytest services/event_gateway/tests/unit/test_contracts.py services/event_gateway/tests/integration/test_events_migration.py -v`  
+Run: `python -m pytest services/event_gateway/tests/unit/test_contracts.py services/event_gateway/tests/integration/test_events_migration.py -v`
 Expected: PASS.
 
 - [ ] **Step 9: Commit**
@@ -143,7 +143,7 @@ Add `test_insert_returns_created_true`, `test_identical_duplicate_returns_origin
 
 - [ ] **Step 2: Run repository tests and confirm failure**
 
-Run: `python -m pytest services/event_gateway/tests/unit/test_repository.py -v`  
+Run: `python -m pytest services/event_gateway/tests/unit/test_repository.py -v`
 Expected: FAIL because `EventRepository` is missing.
 
 - [ ] **Step 3: Implement repository operations**
@@ -152,7 +152,7 @@ Implement `insert`, `get_by_event_id`, and `list_after`. Use `INSERT ... ON CONF
 
 - [ ] **Step 4: Run repository tests and confirm pass**
 
-Run: `python -m pytest services/event_gateway/tests/unit/test_repository.py -v`  
+Run: `python -m pytest services/event_gateway/tests/unit/test_repository.py -v`
 Expected: PASS.
 
 - [ ] **Step 5: Write failing API tests**
@@ -161,7 +161,7 @@ Add `test_post_commits_and_returns_201`, `test_identical_retry_returns_200_and_s
 
 - [ ] **Step 6: Run API tests and confirm failure**
 
-Run: `python -m pytest services/event_gateway/tests/integration/test_event_api.py -v`  
+Run: `python -m pytest services/event_gateway/tests/integration/test_event_api.py -v`
 Expected: FAIL because routes are missing.
 
 - [ ] **Step 7: Implement FastAPI application and routes**
@@ -170,7 +170,7 @@ Create `create_app(settings: Settings) -> FastAPI`. Return `201` for a new event
 
 - [ ] **Step 8: Run Task 2 tests**
 
-Run: `python -m pytest services/event_gateway/tests -v`  
+Run: `python -m pytest services/event_gateway/tests -v`
 Expected: PASS.
 
 - [ ] **Step 9: Commit**
@@ -206,7 +206,7 @@ Add `test_enqueue_is_durable_across_reopen`, `test_enqueue_same_event_is_idempot
 
 - [ ] **Step 2: Run outbox tests and confirm failure**
 
-Run: `python -m pytest jetson_ws/src/fab_event_bridge/test/test_outbox.py -v`  
+Run: `python -m pytest jetson_ws/src/fab_event_bridge/test/test_outbox.py -v`
 Expected: FAIL because `Outbox` is missing.
 
 - [ ] **Step 3: Implement the SQLite outbox**
@@ -215,7 +215,7 @@ Use WAL mode and explicit transactions. Store the immutable serialized event, en
 
 - [ ] **Step 4: Run outbox tests and confirm pass**
 
-Run: `python -m pytest jetson_ws/src/fab_event_bridge/test/test_outbox.py -v`  
+Run: `python -m pytest jetson_ws/src/fab_event_bridge/test/test_outbox.py -v`
 Expected: PASS.
 
 - [ ] **Step 5: Write failing sender tests**
@@ -224,7 +224,7 @@ Add `test_2xx_marks_event_delivered`, `test_timeout_leaves_event_pending`, `test
 
 - [ ] **Step 6: Run sender tests and confirm failure**
 
-Run: `python -m pytest jetson_ws/src/fab_event_bridge/test/test_sender.py -v`  
+Run: `python -m pytest jetson_ws/src/fab_event_bridge/test/test_sender.py -v`
 Expected: FAIL because `EventSender` is missing.
 
 - [ ] **Step 7: Implement the HTTP sender**
@@ -233,7 +233,7 @@ Inject an `EventTransport` protocol with `post_event(event) -> GatewayReceipt`. 
 
 - [ ] **Step 8: Run Task 3 tests**
 
-Run: `python -m pytest jetson_ws/src/fab_event_bridge/test -v`  
+Run: `python -m pytest jetson_ws/src/fab_event_bridge/test -v`
 Expected: PASS.
 
 - [ ] **Step 9: Commit**
@@ -262,7 +262,7 @@ Add `test_valid_ros_json_is_enqueued`, `test_missing_event_id_is_generated_once_
 
 - [ ] **Step 2: Run adapter tests and confirm failure**
 
-Run: `python -m pytest jetson_ws/src/fab_event_bridge/test/test_node_adapter.py -v`  
+Run: `python -m pytest jetson_ws/src/fab_event_bridge/test/test_node_adapter.py -v`
 Expected: FAIL because the adapter is missing.
 
 - [ ] **Step 3: Implement parser and ROS 2 node**
@@ -271,12 +271,12 @@ Keep `rclpy` imports at the adapter boundary. The callback validates one message
 
 - [ ] **Step 4: Run ROS-independent tests**
 
-Run: `python -m pytest jetson_ws/src/fab_event_bridge/test -v`  
+Run: `python -m pytest jetson_ws/src/fab_event_bridge/test -v`
 Expected: PASS on a machine without ROS 2 installed.
 
 - [ ] **Step 5: Run ROS 2 package tests on Jetson**
 
-Run: `cd jetson_ws && colcon test --packages-select fab_event_bridge && colcon test-result --verbose`  
+Run: `cd jetson_ws && colcon test --packages-select fab_event_bridge && colcon test-result --verbose`
 Expected: package tests pass with zero failures.
 
 - [ ] **Step 6: Commit**
@@ -305,7 +305,7 @@ Add `test_publish_sends_events_in_sequence_order`, `test_slow_client_does_not_bl
 
 - [ ] **Step 2: Run stream tests and confirm failure**
 
-Run: `python -m pytest services/event_gateway/tests/unit/test_stream.py -v`  
+Run: `python -m pytest services/event_gateway/tests/unit/test_stream.py -v`
 Expected: FAIL because `EventHub` is missing.
 
 - [ ] **Step 3: Implement the in-process event hub**
@@ -318,7 +318,7 @@ Add `test_event_committed_during_replay_is_delivered_once`. Connect with `after_
 
 - [ ] **Step 5: Run replay test and confirm failure**
 
-Run: `python -m pytest services/event_gateway/tests/integration/test_websocket_replay.py -v`  
+Run: `python -m pytest services/event_gateway/tests/integration/test_websocket_replay.py -v`
 Expected: FAIL because the stream handshake is incomplete.
 
 - [ ] **Step 6: Implement the replay/live handshake**
@@ -327,7 +327,7 @@ Register the client before reading the replay high-water mark, replay `(after_se
 
 - [ ] **Step 7: Run Task 5 tests**
 
-Run: `python -m pytest services/event_gateway/tests -v`  
+Run: `python -m pytest services/event_gateway/tests -v`
 Expected: PASS.
 
 - [ ] **Step 8: Commit**
@@ -362,7 +362,7 @@ Add `DeserializeStoredEvent_UsesServerSequence`, `RejectsUnknownSchemaVersion`, 
 
 - [ ] **Step 2: Run EditMode tests and confirm failure**
 
-Run Unity in batch mode with `-runTests -testPlatform EditMode -projectPath unity`.  
+Run Unity in batch mode with `-runTests -testPlatform EditMode -projectPath unity`.
 Expected: FAIL because runtime types are missing.
 
 - [ ] **Step 3: Implement event contract and durable cursor**
@@ -375,7 +375,7 @@ Add `ReplayThenLive_AppliesEverySequenceOnce`, `DuplicateSequence_IsIgnored`, `G
 
 - [ ] **Step 5: Run ordering tests and confirm failure**
 
-Run the Unity EditMode test command.  
+Run the Unity EditMode test command.
 Expected: FAIL because the coordinator is missing.
 
 - [ ] **Step 6: Implement transport boundary and coordinator**
@@ -384,7 +384,7 @@ Keep UnityWebRequest and WebSocket library calls inside `EventApiClient`. The co
 
 - [ ] **Step 7: Run Task 6 tests**
 
-Run the Unity EditMode test command.  
+Run the Unity EditMode test command.
 Expected: all FabEvents EditMode tests PASS.
 
 - [ ] **Step 8: Commit**
@@ -415,7 +415,7 @@ Add `test_injection_creates_command_and_audit_event_atomically`, `test_invalid_k
 
 - [ ] **Step 2: Run gateway command tests and confirm failure**
 
-Run: `python -m pytest services/event_gateway/tests/integration/test_injection_api.py -v`  
+Run: `python -m pytest services/event_gateway/tests/integration/test_injection_api.py -v`
 Expected: FAIL because the endpoint is missing.
 
 - [ ] **Step 3: Implement command transaction**
@@ -428,7 +428,7 @@ Add `InjectAsync_SerializesCommandIdAndKnob`, `InjectAsync_RetryPreservesCommand
 
 - [ ] **Step 5: Run Unity command tests and confirm failure**
 
-Run the Unity EditMode test command.  
+Run the Unity EditMode test command.
 Expected: FAIL because `AnomalyInjectionClient` is missing.
 
 - [ ] **Step 6: Implement the Unity injection client**
@@ -437,7 +437,7 @@ Generate one command UUID per user action and preserve it across retry attempts.
 
 - [ ] **Step 7: Run Task 7 tests**
 
-Run the gateway integration test and Unity EditMode tests.  
+Run the gateway integration test and Unity EditMode tests.
 Expected: PASS.
 
 - [ ] **Step 8: Commit**
@@ -467,7 +467,7 @@ Add `test_ros_event_reaches_postgres_and_stream`, `test_gateway_outage_replays_a
 
 - [ ] **Step 2: Run end-to-end tests and confirm initial failure**
 
-Run: `docker compose up -d --build postgres gateway && python -m pytest tests/e2e -v`  
+Run: `docker compose up -d --build postgres gateway && python -m pytest tests/e2e -v`
 Expected: at least one recovery test FAIL until lifecycle controls and fixtures are complete.
 
 - [ ] **Step 3: Complete deterministic fault controls**
@@ -476,7 +476,7 @@ Add test-only Compose profiles or fixtures that stop the gateway, sever the send
 
 - [ ] **Step 4: Run the full acceptance suite**
 
-Run: `./scripts/run-e2e.ps1` on Windows and `./scripts/run-e2e.sh` on Linux/Jetson.  
+Run: `./scripts/run-e2e.ps1` on Windows and `./scripts/run-e2e.sh` on Linux/Jetson.
 Expected: all five recovery tests PASS; duplicate query returns zero grouped duplicates.
 
 - [ ] **Step 5: Write and verify the runbook**
@@ -485,7 +485,7 @@ Document environment variables, database migration, Gateway startup, ROS 2 topic
 
 - [ ] **Step 6: Run all automated tests**
 
-Run Python unit/integration suites, ROS 2 package tests on Jetson, Unity EditMode tests, and the E2E script.  
+Run Python unit/integration suites, ROS 2 package tests on Jetson, Unity EditMode tests, and the E2E script.
 Expected: every suite exits `0` with no skipped recovery tests.
 
 - [ ] **Step 7: Commit**

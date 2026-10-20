@@ -35,4 +35,3 @@ packages = ["src/event_gateway", "src/mock_tcad", "src/tcad_service", "src/mock_
 [tool.pytest.ini_options]
 pythonpath = ["src", "../../jetson_ws/src/fab_virtual_lot", "../../tools/mock_unity"]
 testpaths = ["tests"]
-

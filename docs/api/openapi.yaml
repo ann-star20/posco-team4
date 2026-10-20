@@ -553,4 +553,3 @@ components:
         result_origin: {type: string, enum: [mock, prod]}
         deck_template_version: {type: string}
         y_verified: {$ref: "#/components/schemas/VectorY"}
-
