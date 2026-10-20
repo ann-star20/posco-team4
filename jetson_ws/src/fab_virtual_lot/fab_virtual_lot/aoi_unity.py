@@ -13,6 +13,8 @@ import time
 from typing import Callable, Mapping
 from uuid import UUID, uuid4
 
+from websockets.exceptions import ConnectionClosed
+
 from .aoi_pipeline import AoiConfig, inspect_image
 from .aoi_dispatcher import AoiCompletion, AoiDispatcher, AoiQueueFull
 from .camera_buffer import FrameRingBuffer
@@ -284,6 +286,8 @@ class QueuedAoiUnityService:
                         "error_code": "invalid_request",
                     }, None))
             all_done.wait(self.completion_wait_seconds)
+        except ConnectionClosed:
+            pass
         finally:
             outgoing.put(None)
             send_thread.join(timeout=3)

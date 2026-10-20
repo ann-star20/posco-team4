@@ -1,6 +1,7 @@
 import json
 
 from tools.mock_unity.aoi_frame_client import inspect_frame
+from tools.mock_unity.camera_aoi_flow_client import inspect_latest_preview
 from tools.mock_unity.camera_preview_client import receive_preview
 
 
@@ -61,3 +62,23 @@ def test_aoi_client_uses_preview_frame_and_waits_for_completed_binary():
     assert completed["verdict"] == "pass"
     assert image == jpeg
     assert fake.sent[0]["frame_id"] == 41
+
+
+def test_combined_client_forwards_received_preview_frame_without_manual_copy():
+    inspected = []
+
+    def receive(*_args, **_kwargs):
+        return ({"camera_id": "camera-1", "frame_id": 64}, b"preview")
+
+    def inspect(_url, _token, camera_id, frame_id, **_kwargs):
+        inspected.append((camera_id, frame_id))
+        return ({"frame_id": frame_id}, {"job_id": "job", "verdict": "pass"}, b"result")
+
+    result = inspect_latest_preview(
+        "ws://jetson:8500/camera/preview", "preview-token",
+        "ws://jetson:8400/aoi", "aoi-token", "camera-1",
+        preview_receiver=receive, frame_inspector=inspect,
+    )
+
+    assert inspected == [("camera-1", 64)]
+    assert result[0]["frame_id"] == 64

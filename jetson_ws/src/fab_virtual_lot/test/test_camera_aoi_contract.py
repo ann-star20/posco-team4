@@ -5,6 +5,7 @@ import time
 from uuid import uuid4
 
 import numpy as np
+from websockets.exceptions import ConnectionClosedError
 
 from fab_virtual_lot.aoi_dispatcher import AoiDispatcher
 from fab_virtual_lot.aoi_pipeline import AoiConfig, MockModel, inspect_image
@@ -29,6 +30,15 @@ class FakeWebSocket:
         if self.fail_after is not None and len(self.sent) >= self.fail_after:
             raise OSError("Unity disconnected")
         self.sent.append(value)
+
+
+class DisconnectedWebSocket:
+    def __iter__(self):
+        raise ConnectionClosedError(None, None)
+        yield
+
+    def send(self, _value):
+        raise AssertionError("disconnected client must not receive data")
 
 
 def request(frame_id=7, camera_id="camera-1", token="aoi-secret"):
@@ -145,6 +155,14 @@ def test_unity_disconnect_does_not_cancel_persisted_job(tmp_path):
 
     assert record.status == "succeeded"
     assert record.result["event_type"] == "aoi.inspection.completed"
+
+
+def test_client_connection_error_is_a_normal_handler_exit(tmp_path):
+    buffer = FrameRingBuffer(10, 1024 * 1024)
+    service, dispatcher = make_service(tmp_path, buffer)
+
+    service.handle(DisconnectedWebSocket())
+    dispatcher.close()
 
 
 def test_runtime_composition_shares_one_camera_buffer(tmp_path):

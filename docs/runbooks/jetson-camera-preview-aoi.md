@@ -134,6 +134,21 @@ ss -ltnp | grep -E ':8400|:8500'
 
 WSL의 `<JETSON_IP>`와 토큰을 실제 값으로 바꾼다. Preview 한 장을 받고 출력 JSON의 `frame_id`를 기록한다.
 
+Ring Buffer의 기본 보존 시간은 2초이므로 권장 방법은 아래 통합 클라이언트다. Preview에서 받은 `frame_id`를 복사하지 않고 즉시 AOI 요청에 사용한다.
+
+```bash
+python tools/mock_unity/camera_aoi_flow_client.py \
+  --preview-url ws://<JETSON_IP>:8500/camera/preview \
+  --preview-token '<CAMERA_PREVIEW_TOKEN>' \
+  --aoi-url ws://<JETSON_IP>:8400/aoi \
+  --aoi-token '<AOI_UNITY_TOKEN>' \
+  --camera-id aoi-camera-1 \
+  --output-dir /mnt/c/posco_project/data/camera-aoi-flow-test \
+  --timeout 180
+```
+
+Preview와 AOI를 각각 확인해야 할 때만 다음 두 단계 명령을 사용한다. 이 경우 Preview 출력 후 2초 안에 AOI 요청을 보내야 하며 `frame_id`를 그대로 입력해야 한다.
+
 ```bash
 cd /mnt/c/posco_project
 source "$HOME/posco-gateway-venv/bin/activate"
