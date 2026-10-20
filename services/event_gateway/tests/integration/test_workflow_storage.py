@@ -24,7 +24,13 @@ def test_migration_is_repeatable_and_preserves_legacy_event(test_connection):
     apply_migrations(connection, ROOT / "database/migrations", start_at=2)
     row = connection.execute("SELECT run_id FROM events WHERE event_id=%s", (event_id,)).fetchone()
     assert row == (None,)
-    assert connection.execute("SELECT count(*) FROM schema_migrations").fetchone() == (2,)
+    assert connection.execute("SELECT version FROM schema_migrations ORDER BY version").fetchall() == [
+        ("002_create_integration_workflow.sql",),
+        ("003_create_dead_letters.sql",),
+        ("004_create_aoi_image_artifacts.sql",),
+        ("005_create_inference_jobs.sql",),
+        ("006_surrogate_and_unity_delivery.sql",),
+    ]
 
 
 def test_correction_and_job_constraints(test_connection):

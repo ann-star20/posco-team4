@@ -8,7 +8,7 @@ set +a
 for required in DATABASE_URL APPROVAL_OPERATOR APPROVAL_TOKEN ROS_COMMAND_KEY; do
   if [[ -z "${!required:-}" ]]; then echo "$required 값을 .env에 설정해야 합니다." >&2; exit 1; fi
 done
-export PYTHONPATH="$PWD/services/event_gateway/src"
+export PYTHONPATH="$PWD/services/event_gateway/src${PYTHONPATH:+:$PYTHONPATH}"
 pids=()
 cleanup() { for pid in "${pids[@]}"; do kill "$pid" 2>/dev/null || true; done; }
 trap cleanup EXIT INT TERM

@@ -1,5 +1,9 @@
 # 가상 팹 ROS 2 이벤트 파이프라인 설계
 
+> **현재 기준 안내:** 최신 전체 구조는
+> [Virtual Fab 현재 시스템 아키텍처](current-system-architecture.md)를 따른다.
+> 특히 AOI 요청·결과 이미지는 Gateway가 아니라 Jetson WebSocket으로 직접 통신한다.
+
 > 이전 HTTP 브리지 설계 기록이다. 현재 구현 기준은 [mock/prod 통합 아키텍처](jetson-ros2-tcad-unity-integration.md)이며, 충돌 시 새 문서를 따른다.
 
 작성일: 2026-10-14  

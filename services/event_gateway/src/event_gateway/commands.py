@@ -17,7 +17,9 @@ class ApprovalConflict(ValueError):
 def approve_proposal(
     connection: psycopg.Connection, proposal_id: UUID, approved_by: str,
     effective_from_lot: str,
+    target: str = 'jetson',
 ) -> UUID:
+    if target not in {'jetson','unity'}:raise ValueError('invalid delivery target')
     if not approved_by.strip() or not effective_from_lot.strip():
         raise ValueError("approver and effective lot are required")
     with connection.transaction():
@@ -31,11 +33,11 @@ def approve_proposal(
             raise ApprovalConflict("proposal not found")
         status, origin, run_id, candidate, unity_mode, existing_approver, current = row
         existing = connection.execute(
-            "SELECT command_id,effective_from_lot FROM commands WHERE proposal_id=%s",
+            "SELECT command_id,effective_from_lot,delivery_target FROM commands WHERE proposal_id=%s",
             (proposal_id,),
         ).fetchone()
         if existing:
-            if existing[1] != effective_from_lot or existing_approver != approved_by:
+            if existing[1] != effective_from_lot or existing_approver != approved_by or existing[2]!=target:
                 raise ApprovalConflict("proposal already approved differently")
             return existing[0]
         if status != "verified" or (unity_mode == "prod" and origin != "prod"):
@@ -55,9 +57,9 @@ def approve_proposal(
             "WHERE proposal_id=%s", (approved_by, proposal_id),
         )
         connection.execute(
-            "INSERT INTO commands(command_id,proposal_id,run_id,scope,effective_from_lot,payload) "
-            "VALUES (%s,%s,%s,'simulation',%s,%s)",
-            (command_id, proposal_id, run_id, effective_from_lot, Jsonb(payload)),
+            "INSERT INTO commands(command_id,proposal_id,run_id,scope,effective_from_lot,payload,delivery_target) "
+            "VALUES (%s,%s,%s,'simulation',%s,%s,%s)",
+            (command_id, proposal_id, run_id, effective_from_lot, Jsonb(payload),target),
         )
         EventRepository(connection)._insert_event(EventCreate(
             schema_version=1, event_id=uuid4(), event_type="correction.approved",

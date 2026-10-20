@@ -1,7 +1,14 @@
 # Jetson ROS 2 · TCAD · Unity 통합 아키텍처
 
+> **현재 기준 안내:** AOI 통신 경로를 포함한 최신 전체 구성은
+> [Virtual Fab 현재 시스템 아키텍처](current-system-architecture.md)를 따른다.
+> Unity의 AOI 요청·결과 이미지는 Jetson `:8400/aoi`로 직접 연결하며,
+> Gateway WebSocket은 중앙 이벤트·승인·보정 명령에 사용한다.
+
+> 2026-10-16: 이 문서는 기존 이벤트·TCAD 파이프라인 기준이다. Unity의 단계별 검사 요청, Jetson AOI·진단, 이미지 보관과 ACK 확장 설계는 [공정 검사 통합 설계](process-inspection-orchestration.md)를 따른다. 신규 기능은 아직 구현 전이다. 실제 중앙 DB는 Aiven Cloud이며 아래 로컬 PostgreSQL 배치 안내는 사용하지 않는다.
+
 작성일: 2026-10-14
-상태: mock/prod 분리 최종 설계 — 구현·실장비 검증 전
+상태: 기본 mock 파이프라인 구현. Jetson↔Gateway↔Aiven 이벤트·ACK 확인 이력 있음. 실제 TCAD·Unity 앱 연동 미완료. AOI 확장은 위 문서 참조.
 관련 문서: [최종 TDD 계획](../plans/jetson-tcad-unity-integration-tdd-plan.md), [DDL 명세](../database/integration-schema.md)
 
 ## 1. 현재 목표와 구현 경계
@@ -36,7 +43,7 @@ prod 어댑터 구현 완료와 실제 TCAD·Unity 연동 검증 완료는 별�
 flowchart LR
   J["Jetson 가상 Publisher + 로컬 발신함"] -->|"/fab/events"| G["WSL Gateway"]
   G -->|"커밋 후 /fab/event_acks"| J
-  G --> D[("PostgreSQL")]
+  G --> D[("Aiven Cloud PostgreSQL")]
   D --> W["영속 작업 Worker"]
   W -->|"동일 HTTP 계약"| T["TCAD mock 서버 또는 실제 워크스테이션"]
   T -->|"조회 결과"| W
@@ -61,7 +68,7 @@ Jetson 파일은 /home/jetson/project/smart_factory 아래에만 둔다.
 - Gateway는 DB 커밋 후 /fab/event_acks에 event_id, run_id, sequence, status=committed를 보낸다.
 - ACK 전까지 재발행하며 재시작 후 미확인 이벤트를 복구한다. DDS의 reliable QoS만으로 디스크 보존을 주장하지 않는다.
 - SQLite는 Python 기본 sqlite3로 사용한다. 최종 영구 기록은 PostgreSQL이다.
-- 잘못된 이벤트는 성공 ACK 없이 거절 사유를 반환하고 생산자가 보존·격리한다.
+- 잘못된 이벤트는 Aiven dead_letters 저장 후 식별 가능한 경우 dead_lettered ACK를 반환한다. Jetson 발신함은 원문을 유지하고 재시도를 멈춘다. 이는 committed 성공 ACK와 구분한다.
 - 저장 장치 고장까지 무조건 무손실이라는 의미는 아니다. 디스크 부족 시 생산을 멈추고 오류를 표시한다.
 - 명령 적용도 가상 레시피 상태 변경과 command_id 처리 기록을 같은 로컬 트랜잭션으로 저장한다. 동일 명령은 재적용하지 않고 ACK만 반복한다.
 
@@ -97,7 +104,7 @@ GET /api/v1/verifications/{job_id}: queued/running/succeeded/failed.
 성공 결과에는 request_id, job_id, y_verified, result_origin(mock/prod), deck_template_version이 필요하다.
 Gateway는 ID와 저장된 모드가 일치하는지 확인한다. prod 작업에 mock 결과가 오면 거부한다.
 
-mock 서버는 고정된 fixture와 seed로 재현 가능한 결과를 반환한다. 물리 모델이나 원인 진단 모델이 아니다.
+mock 서버는 고정된 fixture로 재현 가능한 결과를 반환한다. TCAD_MOCK_SEED는 현재 실행 로직에서 사용하지 않는다. 물리 모델이나 원인 진단 모델이 아니다.
 시나리오: pass, out_of_spec, timeout, server_error, malformed_response.
 모의 서버도 요청 ID 매핑을 로컬 SQLite에 보존해 재시작 후 같은 요청이 다른 작업으로 바뀌지 않게 한다.
 HTTP 클라이언트의 timeout·5xx는 재시도, 계약 오류·409는 운영자 확인이 필요한 실패로 기록한다.
@@ -160,8 +167,7 @@ JETSON_PROJECT_PATH=/home/jetson/project/smart_factory
 ```
 
 prod 선택 시 TCAD_PROD_URL이 비어 있으면 시작을 거부한다. 실제 주소를 추측하지 않는다.
-WSL에서 Windows PostgreSQL 접근 주소는 현재 네트워크 모드에서 조회·연결 시험으로 확인한다.
-기존 postgres-db 컨테이너를 재사용하며 동일 55432 포트로 Compose를 동시에 기동하지 않는다.
+실제 Gateway는 `.env`의 `DATABASE_URL`로 Aiven PostgreSQL에 연결한다. 로컬 Docker DB는 이 실행 경로에 필요하지 않다.
 테스트는 별도 TEST_DATABASE_URL과 임시 스키마에서 수행한다.
 
 ## 10. 구현·검증 범위

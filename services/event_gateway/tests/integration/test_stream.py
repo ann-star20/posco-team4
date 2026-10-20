@@ -63,6 +63,14 @@ def test_real_http_replay_and_websocket(test_connection):
             message = json.loads(websocket.recv(timeout=3))
             assert message["event_id"] == str(event.event_id)
             assert message["sequence"] == receipt.sequence
+        from importlib.util import find_spec
+        assert find_spec('event_gateway.communication_check') is not None
+        from event_gateway.communication_check import check_gateway
+        checked = check_gateway(
+            f'http://127.0.0.1:{port}',
+            f'ws://127.0.0.1:{port}/api/v1/stream', run_id, timeout=3)
+        assert checked['event_id'] == str(event.event_id)
+        assert checked['sequence'] == receipt.sequence
     finally:
         server.should_exit = True
         thread.join(timeout=3)

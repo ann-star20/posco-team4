@@ -64,9 +64,77 @@ class EventRepository:
     def ingest(self, event: EventCreate, run_id: UUID) -> Receipt:
         with self.connection.transaction():
             receipt = self._insert_event(event, run_id)
+            if event.event_type == "aoi.inspection.completed" and event.source == "jetson.aoi":
+                self._store_aoi_images(event)
+                self._complete_aoi_job(event, run_id)
+            if event.event_type == "aoi.inspection.failed" and event.source == "jetson.aoi":
+                self._fail_aoi_job(event, run_id)
             if event.event_type == "correction.applied":
                 self._mark_applied(event, run_id)
             return receipt
+
+    def _complete_aoi_job(self, event: EventCreate, run_id: UUID) -> None:
+        payload = event.payload
+        job_id = UUID(payload["job_id"])
+        row = self.connection.execute(
+            "SELECT run_id,stage_attempt,status,result_event_id FROM inference_jobs "
+            "WHERE job_id=%s FOR UPDATE", (job_id,),
+        ).fetchone()
+        if row is None:
+            return  # Direct ROS diagnostic request; no Gateway admission row.
+        if row[0] != run_id or row[1] != int(payload["attempt"]):
+            raise EventConflict("AOI result does not match job")
+        if row[3] is not None and row[3] != event.event_id:
+            raise EventConflict("AOI job already completed by another event")
+        if row[2] == "cancelled":
+            return
+        self.connection.execute(
+            "UPDATE inference_jobs SET status='completed',result_event_id=%s,updated_at=now() "
+            "WHERE job_id=%s", (event.event_id, job_id),
+        )
+        self.connection.execute(
+            "UPDATE inference_dispatches SET status='completed' WHERE job_id=%s", (job_id,),
+        )
+
+    def _fail_aoi_job(self, event: EventCreate, run_id: UUID) -> None:
+        payload = event.payload
+        job_id = UUID(payload["job_id"])
+        row = self.connection.execute(
+            "SELECT run_id,stage_attempt,status,result_event_id FROM inference_jobs "
+            "WHERE job_id=%s FOR UPDATE", (job_id,),
+        ).fetchone()
+        if row is None:
+            return
+        if row[0] != run_id or row[1] != int(payload["attempt"]):
+            raise EventConflict("AOI failure does not match job")
+        if row[3] is not None and row[3] != event.event_id:
+            raise EventConflict("AOI job already closed by another event")
+        if row[2] == "cancelled":
+            return
+        self.connection.execute(
+            "UPDATE inference_jobs SET status='failed',result_event_id=%s,updated_at=now() "
+            "WHERE job_id=%s", (event.event_id, job_id),
+        )
+        self.connection.execute(
+            "UPDATE inference_dispatches SET status='completed' WHERE job_id=%s", (job_id,),
+        )
+
+    def _store_aoi_images(self, event: EventCreate) -> None:
+        payload = event.payload
+        job_id = UUID(payload["job_id"])
+        attempt = int(payload["attempt"])
+        device_id = str(payload["device_id"])
+        for role, image in payload["images"].items():
+            self.connection.execute(
+                "INSERT INTO aoi_image_artifacts (artifact_id,job_id,attempt,source_event_id,"
+                "image_role,device_id,local_directory,file_name,sha256,byte_size,width,height,captured_at) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+                "ON CONFLICT (artifact_id) DO NOTHING",
+                (UUID(image["artifact_id"]), job_id, attempt, event.event_id,
+                 role, device_id, image["local_directory"], image["file_name"],
+                 image["sha256"], image["byte_size"], image["width"], image["height"],
+                 event.occurred_at),
+            )
 
     def _mark_applied(self, event: EventCreate, run_id: UUID) -> None:
         if event.source != "jetson.virtual_lot":
@@ -83,7 +151,7 @@ class EventRepository:
             raise EventConflict("invalid command ACK") from exc
         row = self.connection.execute(
             "SELECT run_id,proposal_id,effective_from_lot,status,applied_event_id "
-            "FROM commands WHERE command_id=%s FOR UPDATE", (command_id,),
+            "FROM commands WHERE command_id=%s AND delivery_target='jetson' FOR UPDATE", (command_id,),
         ).fetchone()
         if row is None or row[:3] != (run_id, proposal_id, lot):
             raise EventConflict("command ACK does not match pending command")

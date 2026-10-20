@@ -16,6 +16,7 @@ from .command_dispatcher import claim_due_commands
 from .command_auth import sign_command
 from .contracts import CorrectionProposal, EventCreate
 from .dead_letters import record_dead_letter
+from .inference_jobs import claim_due_aoi_requests
 from .repository import EventConflict, EventRepository
 
 
@@ -36,6 +37,9 @@ def store_ros_event(repository: EventRepository, event: EventCreate,
     run_uuid = UUID(run_id)
     run_tcad_mode, _, _, baseline = repository.resolve_run(
         run_uuid, settings.tcad_mode, settings.unity_mode)
+    if event.event_type == 'surrogate.completed':
+        from .surrogate import ingest_surrogate
+        return ingest_surrogate(repository,event,run_uuid,settings)
     if event.event_type != "correction.proposed":
         return repository.ingest(event, run_uuid)
     proposal = CorrectionProposal.model_validate(event.payload)
@@ -88,6 +92,8 @@ def main() -> None:
             super().__init__("fab_gateway_bridge")
             self.ack_pub = self.create_publisher(String, settings.ros_event_ack_topic, 10)
             self.command_pub = self.create_publisher(String, settings.ros_command_topic, 10)
+            self.inference_pub = self.create_publisher(String, settings.ros_inference_request_topic, 10)
+            self.surrogate_pub = self.create_publisher(String, settings.ros_surrogate_request_topic, 10)
             self.adapter = RosEventAdapter(self.enqueue, self.enqueue_dead)
             self.create_subscription(String, settings.ros_event_topic,
                                      lambda msg: self.adapter.receive(msg.data), 10)
@@ -178,6 +184,22 @@ def main() -> None:
             time.sleep(0.5)
 
     Thread(target=dispatch_commands, daemon=True).start()
+
+    def dispatch_inference():
+        while rclpy.ok():
+            try:
+                with psycopg.connect(settings.database_url, autocommit=True) as connection:
+                    due = claim_due_aoi_requests(connection)
+                for payload in due:
+                    message = String()
+                    message.data = json.dumps(payload, separators=(",", ":"))
+                    publisher = node.surrogate_pub if payload['task_type']=='surrogate' else node.inference_pub
+                    publisher.publish(message)
+            except Exception:
+                logger.exception("AOI request dispatch failed; DB outbox remains due")
+            time.sleep(0.5)
+
+    Thread(target=dispatch_inference, daemon=True).start()
     try:
         spin_ros(node, rclpy)
     finally:

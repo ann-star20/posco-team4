@@ -12,4 +12,5 @@ data/
 jetson_ws/build/
 jetson_ws/install/
 jetson_ws/log/
+jetson_ws/result/
 
