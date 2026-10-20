@@ -4,8 +4,14 @@ import argparse
 import json
 from pathlib import Path
 
-from tools.mock_unity.aoi_frame_client import inspect_frame
-from tools.mock_unity.camera_preview_client import receive_preview
+try:
+    from tools.mock_unity.aoi_frame_client import inspect_frame
+    from tools.mock_unity.camera_preview_client import receive_preview
+except ModuleNotFoundError as error:
+    if error.name != "tools":
+        raise
+    from aoi_frame_client import inspect_frame
+    from camera_preview_client import receive_preview
 
 
 def inspect_latest_preview(
