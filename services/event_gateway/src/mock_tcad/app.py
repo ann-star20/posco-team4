@@ -7,10 +7,12 @@ import sqlite3
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class RequestBody(BaseModel):
+    # Include all process inputs in the request identity, not only targets.
+    model_config = ConfigDict(extra="allow")
     request_id: str
     proposal_id: str
     targets: dict[str, dict[str, float]]
@@ -27,6 +29,14 @@ def create_app(path: Path, scenario: str = "pass") -> FastAPI:
             "result TEXT NOT NULL)"
         )
     app = FastAPI()
+
+    @app.get("/health/live")
+    def live():
+        return {"status": "ok", "result_origin": "mock"}
+
+    @app.get("/health/ready")
+    def ready():
+        return {"status": "ready", "result_origin": "mock"}
 
     @app.post("/api/v1/verifications", status_code=202)
     def submit(body: RequestBody):
@@ -82,7 +92,9 @@ def main() -> None:
     values = _read_dotenv(Path(".env")) | dict(os.environ)
     path = Path(values.get("TCAD_MOCK_DB_PATH", "data/mock-tcad.sqlite"))
     scenario = values.get("TCAD_MOCK_SCENARIO", "pass")
-    uvicorn.run(create_app(path, scenario), host="127.0.0.1", port=8100)
+    uvicorn.run(create_app(path, scenario),
+                host=values.get("TCAD_BIND_HOST", "127.0.0.1"),
+                port=int(values.get("TCAD_BIND_PORT", "8100")))
 
 
 if __name__ == "__main__":

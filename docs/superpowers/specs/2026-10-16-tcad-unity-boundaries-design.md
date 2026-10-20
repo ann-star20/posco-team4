@@ -3,6 +3,8 @@
 작성일: 2026-10-16
 상태: 사용자 검토 대기
 
+> 후속 요구 반영: Unity 단계별 검사 요청과 Jetson AOI·진단을 포함한 [공정 검사 확장 설계](../../architecture/process-inspection-orchestration.md)가 추가되었다. 본 문서의 TCAD·Unity 계약 원칙은 유지하며, 신규 이미지·추론·ACK 경계는 확장 설계를 따른다.
+
 ## 목적과 성공 기준
 
 현재 실행 환경의 아키텍처·데이터 흐름을 실제 코드와 일치시키고, 별도 TCAD 워크스테이션 및 별도 Unity PC가 준비되었을 때 환경변수로 연결할 수 있는 경계를 만든다. Jetson의 기존 Ubuntu·ROS 2·DDS·네트워크 설정은 변경하지 않는다. 실제 ML, Silvaco 실행, Unity C# 앱은 이번 범위 밖이다.

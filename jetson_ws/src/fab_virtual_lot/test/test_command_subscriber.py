@@ -1,9 +1,18 @@
+import hashlib
+import hmac
+import json
 from uuid import uuid4
 
 import pytest
 
 from fab_virtual_lot.command_subscriber import RecipeStore
-from event_gateway.command_auth import sign_command
+
+
+def sign_fixture_command(command: dict, key: str) -> dict:
+    canonical = json.dumps(command, sort_keys=True, separators=(",", ":"),
+                           ensure_ascii=False).encode("utf-8")
+    signature = hmac.new(key.encode("utf-8"), canonical, hashlib.sha256).hexdigest()
+    return command | {"command_mac": signature}
 
 
 def test_command_is_idempotent_and_lot_scoped(tmp_path):
@@ -15,7 +24,7 @@ def test_command_is_idempotent_and_lot_scoped(tmp_path):
         "x_current": {"oxide_thickness": 1.0, "body_dose": 1.0,
                        "diffusion_time": 1.0, "epi_doping": 1.0},
     }
-    command = sign_command(command, "fixture-key")
+    command = sign_fixture_command(command, "fixture-key")
     with RecipeStore(tmp_path / "recipe.sqlite", "fixture-key") as store:
         first = store.apply(command)
         assert store.apply(command) == first

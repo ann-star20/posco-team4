@@ -20,24 +20,58 @@ Jetson에서 한 건을 발행하고 Aiven DB 적재를 직접 확인하려면 [
 
 Jetson 접속은 `.env`의 호스트/계정으로 현재 주소와 대상 경로를 읽기 전용 확인한 뒤 진행한다. 저장소의 `jetson_ws/src/fab_virtual_lot` 패키지만 Jetson의 프로젝트 경로 아래 `jetson_ws/src/fab_virtual_lot`에 복사한다. 기존 동일 경로 파일이 있으면 덮어쓰기 전에 diff와 백업을 확인한다. 시스템 경로에는 복사하지 않는다.
 
+`setup.py`나 새 실행 파일 하나만 부분 복사하지 않는다. `setup.py`에 진입점만 있고
+그 진입점이 import하는 Python 모듈이 빠지면 `ros2 pkg executables`에는 표시되지만
+실행할 때 `ModuleNotFoundError`가 발생한다. 최소한 `fab_virtual_lot/*.py`,
+`setup.py`, `setup.cfg`, `package.xml`은 같은 소스 버전으로 함께 배치한다.
+
+| 경로 | 용도 |
+| --- | --- |
+| `/home/jetson/project/smart_factory/` | 프로젝트 루트. `.env`, `data/`, `jetson_ws/`를 둔다. 여기서 `colcon build`를 실행하지 않는다. |
+| `/home/jetson/project/smart_factory/jetson_ws/` | ROS 2 워크스페이스. 여기서 `colcon build`를 실행한다. `build/`, `install/`, `log/`는 이 경로에 생성된다. |
+| `/home/jetson/project/smart_factory/jetson_ws/src/fab_virtual_lot/` | ROS 2 Python 패키지. `package.xml`, `setup.py`, `fab_virtual_lot/`, `resource/`, `test/`가 있어야 한다. |
+
+먼저 Jetson에서 다음 위치를 확인한다. `colcon list`가 `fab_virtual_lot ... (ros.ament_python)`을 출력하지 않으면 빌드 전에 패키지 위치와 `package.xml`의 빌드 유형을 확인한다.
+
+```bash
+test -f /home/jetson/project/smart_factory/jetson_ws/src/fab_virtual_lot/package.xml
+cd /home/jetson/project/smart_factory/jetson_ws
+source /opt/ros/humble/setup.bash
+colcon list --packages-select fab_virtual_lot
+```
+
 Jetson에서는 프로젝트 경로의 `.env`에 동일한 `ROS_COMMAND_KEY`를 안전하게 보관하고 실행 셸에서만 환경변수로 읽는다. 저장소로 커밋하지 않으며 전역 셸 프로필이나 OS 설정에는 추가하지 않는다. 기존 ROS 2 셸 환경을 소싱한 후 프로젝트 디렉터리에서 다음을 실행한다.
 
 ```bash
 cd /home/jetson/project/smart_factory/jetson_ws
+source /opt/ros/humble/setup.bash
 set -a
 source ../.env
 set +a
 colcon build --packages-select fab_virtual_lot
 source install/setup.bash
+ros2 pkg executables fab_virtual_lot
 ros2 run fab_virtual_lot fab_demo_publisher
 ```
 
-별도 셸에서 같은 환경을 소싱하고 `ros2 run fab_virtual_lot fab_command_subscriber`를 실행한다. 발신함은 프로젝트 `data/event-outbox.sqlite`, 가상 레시피는 `data/recipes.sqlite`에 보관한다. 둘은 PostgreSQL을 대체하지 않는다. DB 커밋 ACK가 올 때까지 이벤트를 재발행한다.
+Jetson의 `.env`에는 `ROS_COMMAND_KEY`와 `JETSON_PROJECT_PATH`만 있으면 된다. Aiven `DATABASE_URL`과 승인 토큰은 Gateway가 실행되는 PC/WSL에만 둔다. 별도 셸에서 같은 환경을 소싱하고 `ros2 run fab_virtual_lot fab_command_subscriber`를 실행한다. 발신함은 프로젝트 `data/event-outbox.sqlite`, 가상 레시피는 `data/recipes.sqlite`에 보관한다. 둘은 PostgreSQL을 대체하지 않는다. DB 커밋 ACK가 올 때까지 이벤트를 재발행한다.
+
+Jetson 패키지 단위 테스트는 `colcon test`의 종료 코드만 보지 말고 실제 실행 건수를 확인한다. 이 환경에서는 `colcon test`가 **0개**를 실행한 적이 있으므로 다음 명령으로 테스트 파일을 직접 실행한다.
+
+```bash
+cd /home/jetson/project/smart_factory/jetson_ws
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+python3 -m pytest -q src/fab_virtual_lot/test
+```
+
+2026-10-15 Jetson 정리 기록: 프로젝트 루트에서 잘못 생성된 `build/`, `install/`, `log/`만 `/home/jetson/project/smart_factory/.recoverable/root-colcon-2026-10-15-2afb6bd7/`로 이동했다. 삭제하지 않았으므로 필요하면 복구할 수 있다. `jetson_ws` 내부 빌드 산출물은 그대로 유지했다.
 
 `ROS_COMMAND_KEY`가 없으면 브리지와 명령 구독자는 시작하지 않는다. 키가 다른 명령이나 적용 영수증은 거부되며, 처리 불가능한 ROS 메시지는 PostgreSQL `dead_letters`에 원문과 오류 코드로 보존한다. 식별 가능한 메시지는 격리 ACK 이후 Jetson 발신함에서 재전송을 멈추지만 발신함 원문은 유지한다. 식별자조차 없는 메시지는 ACK가 불가능하므로 `dead_letters`를 보고 수동 조치한다.
 
 ## 3. 경로 확인
 
+- Jetson→WSL DDS 연결: DB에 기록되지 않는 `/fab/path_check` 시험 토픽으로 먼저 확인한다. WSL에서 `ros2 topic echo --once /fab/path_check std_msgs/msg/String`를 실행하고 Jetson에서 `ros2 topic pub --once /fab/path_check std_msgs/msg/String "{data: 'route-check'}"`를 발행한다. 구독자 발견이 실패하면 실제 이벤트를 발행하기 전에 ROS 노드 발견 문제를 해결한다.
 - WSL: `ros2 topic echo /fab/events`와 `ros2 topic echo /fab/event_acks`로 발행과 커밋 확인.
 - PostgreSQL: `integration_runs`, `events`, `correction_proposals`, `verification_jobs`, `commands` 건수와 상태 확인.
 - Gateway: `GET /health/live`, `GET /api/v1/events?run_id=<UUID>&after_sequence=0` 확인.
@@ -48,3 +82,7 @@ ros2 run fab_virtual_lot fab_demo_publisher
 ## 테스트
 
 `python -m pytest -q`는 `TEST_DATABASE_URL`의 DB에 고유 임시 스키마를 만들고 테스트 종료 시 그 스키마만 제거한다. `DATABASE_URL`과 같은 Aiven DB를 가리켜도 기존 `public.events`를 삭제하지 않는다. 실제 Jetson ROS 왕복, 실제 TCAD, 실제 Unity는 별도 실연동 시험이며 이 명령의 합격으로 대체하지 않는다.
+
+2026-10-15 초기 점검에서는 Jetson `colcon build`와 직접 `pytest` 6개가 통과했으나 DDS 발견 문제가 있었다. 같은 날 후속 확인에서는 Jetson 발신함 6건의 양수 delivered_sequence와 같은 run_id의 Aiven 이벤트 6건(sequence 5~10)을 확인했다. 이 이력은 당시 이벤트·ACK 경로 확인이며 현재 연결이나 실제 TCAD·Unity의 성공을 보증하지 않는다.
+
+2026-10-16 추가된 TCAD 서비스 틀 및 실제 HTTP/WebSocket 점검 명령은 [통신 테스트 프로세스](process-inspection-test.md) 2절을 따른다. Jetson 카메라·AOI·진단 확장은 [공정 검사 설계](../architecture/process-inspection-orchestration.md)에 구현 여부를 구분했다.

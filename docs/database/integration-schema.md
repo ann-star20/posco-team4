@@ -1,7 +1,7 @@
 # 통합 이벤트 DB 변경 명세
 
 기준: PostgreSQL 16, 기존 001_create_events.sql은 feat/event-contract에 구현되어 있다.
-상태: 적용 전 설계. 이번 작업에서는 SQL 파일 생성·DB 실행을 하지 않는다.
+상태(2026-10-18): 아래 002 절은 최초 워크플로 설계 기록이다. 현재 실행 SQL은 `database/migrations/`의 001~006이며 Aiven public에 적용했다. 004는 AOI 이미지, 005는 AOI/ML 작업과 ROS dispatch, 006은 전기적 ML 응답 및 Unity 전달 대상을 추가한다. 실제 실행 기준은 [전체 mock 공정 가이드](../runbooks/full-mock-process.md)다.
 연결: [아키텍처](../architecture/jetson-ros2-tcad-unity-integration.md), [태스크 03](../tasks/jetson-integration/03-database.md).
 
 ## 1. 변경 이유
@@ -16,10 +16,13 @@
 | verification_jobs | HTTP 제출·조회 재시도 | request_id PK, proposal 1:1, lease |
 | commands | 승인 후 ROS 전달·적용 확인 | proposal당 명령 1개 |
 | events | 감사 기록과 Unity 재생 | 기존 보존, 신규 run_id FK |
+| aoi_image_artifacts | Jetson 원본/주석 JPG 경로와 탐지 결과 | job·role·device_path 고유 |
+| inference_jobs / inference_dispatches | AOI·전기적 ML 요청 및 ROS outbox | request 멱등, 활성 unit/stage 1건 |
+| surrogate_results | 모델 HTTP 응답 원형과 TCAD 라우팅 판정 | job당 결과 1건 |
 
-## 2. 002 마이그레이션 초안
+## 2. 002 마이그레이션 설계 기록
 
-아래 SQL을 구현 태스크에서 database/migrations/002_create_integration_workflow.sql로 옮긴다.
+아래 SQL은 이미 `database/migrations/002_create_integration_workflow.sql`에 반영된 당시 설계 기록이다.
 기존 events 행은 legacy 기록으로 run_id=NULL을 유지한다. 신규 Gateway 쓰기는 run_id를 필수 검증한다.
 
 ```sql

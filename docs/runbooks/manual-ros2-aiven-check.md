@@ -33,11 +33,11 @@ cd /mnt/c/posco_project
 source /opt/ros/humble/setup.bash
 source "$HOME/posco-gateway-venv/bin/activate"
 python -c 'import rclpy, std_msgs, psycopg, pydantic; print("Python 의존성 확인")'
-export PYTHONPATH="$PWD/services/event_gateway/src"
+export PYTHONPATH="$PWD/services/event_gateway/src${PYTHONPATH:+:$PYTHONPATH}"
 python -m event_gateway.ros_adapter
 ```
 
-ROS setup을 소싱한 뒤에도 `rclpy` import가 실패하면 기존 WSL ROS 환경의 Python 버전과 가상환경 Python이 같은지 확인한다. ROS 설치를 다시 하거나 Jetson의 시스템 설정을 바꾸지 않는다. `.env`는 브리지가 직접 읽는다. 이미 통신되던 `ROS_DOMAIN_ID`·`RMW_IMPLEMENTATION` 셸 환경을 그대로 유지한다.
+`PYTHONPATH`를 설정할 때 기존 ROS 경로를 반드시 보존한다. `export PYTHONPATH="$PWD/services/event_gateway/src"`처럼 덮어쓰면 위 의존성 확인은 성공해도 브리지 실행에서 `ModuleNotFoundError: No module named 'rclpy'`가 난다. 이미 덮어쓴 터미널에서는 `source /opt/ros/humble/setup.bash`를 다시 실행한 다음 위의 보존형 `export`를 실행한다. ROS setup을 소싱한 뒤에도 `rclpy` import가 실패하면 기존 WSL ROS 환경의 Python 버전과 가상환경 Python이 같은지 확인한다. ROS 설치를 다시 하거나 Jetson의 시스템 설정을 바꾸지 않는다. `.env`는 브리지가 직접 읽는다. 이미 통신되던 `ROS_DOMAIN_ID`·`RMW_IMPLEMENTATION` 셸 환경을 그대로 유지한다.
 
 `Failed building editable for fab-event-gateway`가 나왔던 경우에는 현재 저장소의 `services/event_gateway/pyproject.toml`에 두 패키지 경로가 명시되어 있는지 확인하고 위 `pip install --no-cache-dir -e` 명령만 다시 실행한다. 가상환경을 삭제하거나 Jetson 설정을 바꿀 필요는 없다. 다시 실패하면 마지막 `Failed building` 줄보다 앞에 있는 첫 `ValueError` 또는 `error:`부터 오류를 확인한다.
 
@@ -62,7 +62,7 @@ export EVENT_ID="$(python3 -c 'import uuid; print(uuid.uuid4())')"
 EVENT_JSON="$(python3 -c 'import datetime,json,os; print(json.dumps({"schema_version":1,"event_id":os.environ["EVENT_ID"],"run_id":os.environ["RUN_ID"],"event_type":"anomaly.detected","source":"jetson.virtual_lot","severity":"warning","occurred_at":datetime.datetime.now(datetime.timezone.utc).isoformat(),"payload":{"lot_id":"MANUAL-001","input_origin":"synthetic"}},separators=(",",":")))')"
 
 printf 'RUN_ID=%s\nEVENT_ID=%s\n' "$RUN_ID" "$EVENT_ID"
-ros2 topic pub --once /fab/events std_msgs/msg/String "{data: '$EVENT_JSON'}"
+ros2 topic pub --once --keep-alive 60 /fab/events std_msgs/msg/String "{data: '$EVENT_JSON'}"
 ```
 
 출력된 `EVENT_ID`를 복사해 둔다. 정상 경로는 Jetson 발행 → WSL 브리지 수신 → Aiven 트랜잭션 커밋 → `/fab/event_acks`에 같은 `event_id`와 `status: committed`, 양수 `sequence` 발행이다. 수동 `ros2 topic pub --once`에는 재전송 발신함이 없으므로 브리지나 DB가 끊긴 상태에서 보내면 다시 새 이벤트로 발행해야 한다.
@@ -74,7 +74,7 @@ WSL 터미널 C에서 저장소 루트와 위 가상환경을 사용한다. `EVE
 ```bash
 cd /mnt/c/posco_project
 source "$HOME/posco-gateway-venv/bin/activate"
-export PYTHONPATH="$PWD/services/event_gateway/src"
+export PYTHONPATH="$PWD/services/event_gateway/src${PYTHONPATH:+:$PYTHONPATH}"
 export EVENT_ID='Jetson에서 출력된 EVENT_ID'
 python - <<'PY'
 import os
@@ -128,7 +128,7 @@ ros2 run fab_virtual_lot fab_demo_publisher
 ```bash
 cd /mnt/c/posco_project
 source "$HOME/posco-gateway-venv/bin/activate"
-export PYTHONPATH="$PWD/services/event_gateway/src"
+export PYTHONPATH="$PWD/services/event_gateway/src${PYTHONPATH:+:$PYTHONPATH}"
 export RUN_ID='Jetson의 data/demo-run-id 값'
 python - <<'PY'
 import os

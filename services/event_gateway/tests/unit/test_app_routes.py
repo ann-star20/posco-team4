@@ -8,3 +8,6 @@ def test_gateway_exposes_replay_and_stream():
     assert "/api/v1/events" in paths
     assert "/api/v1/stream" in paths
     assert "/health/live" in paths
+    assert "/api/v1/inspection-jobs" in paths
+    assert "/api/v1/control" in paths
+    assert "/api/v1/inspection-jobs/{job_id}" in paths

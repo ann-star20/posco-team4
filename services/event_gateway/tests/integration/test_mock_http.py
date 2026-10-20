@@ -44,6 +44,12 @@ def test_mock_tcad_real_http_and_request_idempotency(tmp_path):
         assert accepted == [first.job_id] * 4
         assert result["request_id"] == request_id
         assert result["result_origin"] == "mock"
+        from importlib.util import find_spec
+        assert find_spec('event_gateway.communication_check') is not None
+        from event_gateway.communication_check import check_tcad_mock
+        checked = check_tcad_mock(f'http://127.0.0.1:{port}', timeout=3)
+        assert checked['result_origin'] == 'mock'
+        assert checked['status'] == 'succeeded'
     finally:
         server.should_exit = True
         thread.join(timeout=3)
