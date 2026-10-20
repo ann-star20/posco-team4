@@ -253,4 +253,3 @@ sequenceDiagram
 - HTTP: [`../api/openapi.yaml`](../api/openapi.yaml)
 - WebSocket 및 ROS 2: [`../api/asyncapi.yaml`](../api/asyncapi.yaml)
 - 사용 안내: [`../api/README.md`](../api/README.md)
-

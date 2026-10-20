@@ -127,4 +127,3 @@ class CameraCaptureService:
                 source.close()
             except Exception:
                 pass
-

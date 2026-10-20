@@ -624,4 +624,3 @@ components:
         effective_from_lot: {type: string, minLength: 1}
         x_candidate: {$ref: "#/components/schemas/VectorX"}
         x_current: {$ref: "#/components/schemas/VectorX"}
-

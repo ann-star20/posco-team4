@@ -80,4 +80,3 @@ def test_capture_notifies_listener_without_exposing_mutable_buffer_frame():
 
     assert delivered[0].captured_at.tzinfo == timezone.utc
     assert delivered[0].image.flags.writeable is False
-

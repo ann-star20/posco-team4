@@ -58,4 +58,3 @@ outbox와 `/fab/events`를 통해 Gateway/Aiven 영구 저장 흐름에 연결�
 ```
 
 UUID는 샘플이며 실제 실행 때 새 값으로 교체한다. 토큰, DB URL, 비밀번호는 샘플 payload·로그·Git에 넣지 않는다.
-
