@@ -1,4 +1,8 @@
 import json
+import os
+from pathlib import Path
+import subprocess
+import sys
 
 from tools.mock_unity.aoi_frame_client import inspect_frame
 from tools.mock_unity.camera_aoi_flow_client import inspect_latest_preview
@@ -82,3 +86,17 @@ def test_combined_client_forwards_received_preview_frame_without_manual_copy():
 
     assert inspected == [("camera-1", 64)]
     assert result[0]["frame_id"] == 64
+
+
+def test_combined_client_can_run_as_documented_file_path():
+    root = Path(__file__).resolve().parents[4]
+    env = os.environ.copy()
+    env.pop("PYTHONPATH", None)
+
+    result = subprocess.run(
+        [sys.executable, str(root / "tools/mock_unity/camera_aoi_flow_client.py"),
+         "--help"],
+        cwd=root, env=env, capture_output=True, text=True, timeout=10,
+    )
+
+    assert result.returncode == 0, result.stderr
