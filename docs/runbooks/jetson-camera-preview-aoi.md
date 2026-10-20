@@ -99,10 +99,16 @@ CAMERA_ALLOW_HTTP=true
 ```bash
 cd /home/jetson/project/smart_factory/jetson_ws
 source /opt/ros/humble/setup.bash
-python3 -c 'import cv2, numpy, websockets; print("카메라 의존성 확인")'
+python3 -c 'import cv2, numpy, ultralytics; from websockets.sync.server import serve; print("카메라 의존성 확인")'
 colcon build --packages-select fab_virtual_lot --symlink-install
 source install/setup.bash
 ros2 pkg executables fab_virtual_lot
+```
+
+`websockets.sync`를 찾지 못하면 Ubuntu 기본 패키지가 너무 오래된 것이다. 시스템 Python을 교체하지 말고 Jetson 사용자 영역에 프로젝트 요구 버전만 설치한 뒤 위 확인 명령을 다시 실행한다.
+
+```bash
+python3 -m pip install --user 'websockets>=13,<16'
 ```
 
 서버는 Jetson에서 실행한다. 하나의 명령이 카메라 capture, Preview `8500`, AOI `8400`, AOI outbox를 함께 시작한다.
