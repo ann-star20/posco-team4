@@ -52,6 +52,7 @@ CAMERA_PREVIEW_HEIGHT=720
 CAMERA_PREVIEW_FPS=5
 CAMERA_PREVIEW_JPEG_QUALITY=75
 CAMERA_PREVIEW_MAX_CLIENTS=2
+CAMERA_STATUS_LOG_INTERVAL_SECONDS=5
 CAMERA_PREVIEW_TOKEN=<별도-시험-토큰>
 AOI_UNITY_WS_HOST=0.0.0.0
 AOI_UNITY_WS_PORT=8400
@@ -105,11 +106,21 @@ source install/setup.bash
 ros2 pkg executables fab_virtual_lot
 ```
 
-`websockets.sync`를 찾지 못하면 Ubuntu 기본 패키지가 너무 오래된 것이다. 시스템 Python을 교체하지 말고 Jetson 사용자 영역에 프로젝트 요구 버전만 설치한 뒤 위 확인 명령을 다시 실행한다.
+`websockets.sync`를 찾지 못하면 AOI를 실행하는 `vision_env`에 프로젝트 요구 버전을
+설치한 뒤 확인 명령을 다시 실행한다. `PYTHONNOUSERSITE=1`을 사용하는 실행에서는
+`pip install --user`로 설치한 `~/.local` 패키지가 보이지 않으므로 사용하지 않는다.
 
 ```bash
-python3 -m pip install --user 'websockets>=13,<16'
+export PYTHONNOUSERSITE=1
+/home/jetson/vision_env/bin/python3 -m pip install \
+  'numpy==1.26.4' 'websockets>=13,<16'
+/home/jetson/vision_env/bin/python3 -c \
+  'import cv2, numpy, websockets; from websockets.sync.server import serve; print(numpy.__version__, websockets.__version__)'
 ```
+
+Jetson의 OpenCV는 NumPy 1.x ABI로 빌드되어 있으므로 `vision_env`의 NumPy를 2.x로
+올리지 않는다. NumPy 2.x이면 `_ARRAY_API not found` 또는
+`numpy.core.multiarray failed to import`가 발생한다.
 
 서버는 Jetson에서 실행한다. 하나의 명령이 카메라 capture, Preview `8500`, AOI `8400`, AOI outbox를 함께 시작한다.
 
@@ -171,6 +182,14 @@ python tools/mock_unity/aoi_frame_client.py \
 ```
 
 정상 결과는 `accepted` 후 `completed`, annotated JPG 저장이다. 너무 오래된 frame은 `stale_frame`, 큐가 가득 차면 `queue_full`로 거부된다.
+
+서버는 기본 5초마다 카메라와 Preview 상태를 출력한다. URL과 인증정보는 출력하지 않는다.
+
+```text
+Camera status: running=true connected=true captured=7713 latest_frame=7713 reconnects=0 | Preview status: subscribers=2 encoded=2451 dropped=4
+```
+
+`captured=0`이면 IP 카메라 입력을, `captured>0`인데 `encoded=0`이면 Preview 구독·인코딩 구간을 확인한다. 로그가 필요 없으면 `CAMERA_STATUS_LOG_INTERVAL_SECONDS=0`으로 끈다.
 
 ## 5. Gateway·Aiven 영속화 확인
 

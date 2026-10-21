@@ -5,6 +5,7 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path
+import time
 from typing import Mapping
 from uuid import UUID, uuid4
 
@@ -57,14 +58,28 @@ def model_paths(env: Mapping[str, str] = os.environ) -> tuple[Path, Path]:
 
 
 class UltralyticsModel:
-    def __init__(self, weight: Path, device: str = "cpu") -> None:
+    def __init__(self, weight: Path, device: str = "cpu", precision: str = "fp32") -> None:
         from ultralytics import YOLO
         self.model = YOLO(str(weight))
         self.device = device
+        self.precision = precision
+        self.metadata = {
+            "file_name": weight.name,
+            "sha256": sha256(weight.read_bytes()).hexdigest(),
+            "backend": "ultralytics-tensorrt" if weight.suffix == ".engine" else "ultralytics-pytorch",
+            "precision": precision,
+            "device": device,
+        }
+
+    def synchronize(self) -> None:
+        if self.device.startswith("cuda"):
+            import torch
+            torch.cuda.synchronize()
 
     def predict(self, image: np.ndarray, conf: float, iou: float) -> list[dict]:
         result = self.model.predict(source=image, conf=conf, iou=iou,
-                                    device=self.device, verbose=False)[0]
+                                    device=self.device, verbose=False,
+                                    half=self.precision == "fp16")[0]
         found = []
         masks = result.masks.data.cpu().numpy() if result.masks is not None else None
         for index, box in enumerate(result.boxes):
@@ -80,6 +95,7 @@ class UltralyticsModel:
 class MockModel:
     def __init__(self, label: int, confidence: float, box: tuple[int, int, int, int]):
         self.label, self.confidence, self.box = label, confidence, box
+        self.metadata = {"backend": "mock", "precision": "synthetic", "device": "cpu"}
 
     def predict(self, image: np.ndarray, conf: float, iou: float) -> list[dict]:
         return ([{"cls": self.label, "conf": self.confidence, "xyxy": self.box}]
@@ -129,6 +145,7 @@ def inspect_image(image: np.ndarray, job_id: UUID, attempt: int, config: AoiConf
                   part_model, defect_model) -> dict:
     if attempt < 1 or image is None or image.ndim != 3 or image.shape[2] != 3:
         raise ValueError("invalid AOI image or attempt")
+    total_started = time.perf_counter()
     directory = config.result_dir / str(job_id) / str(attempt)
     manifest = directory / "result.json"
     if manifest.exists():
@@ -139,11 +156,20 @@ def inspect_image(image: np.ndarray, job_id: UUID, attempt: int, config: AoiConf
     annotated = source.copy()
     font_scale, text_thickness, box_thickness = annotation_style(
         annotated.shape[1], annotated.shape[0])
+    inference_ms = {}
     for model_name, model, threshold, iou, class_names, color in (
         ("part", part_model, config.part_conf, config.part_iou, PART_CLASSES, (255, 128, 0)),
         ("defect", defect_model, config.defect_conf, config.defect_iou, DEFECT_CLASSES, (0, 0, 255)),
     ):
-        for box in model.predict(source.copy(), conf=threshold, iou=iou):
+        synchronize = getattr(model, "synchronize", lambda: None)
+        synchronize()
+        inference_started = time.perf_counter()
+        boxes = model.predict(source.copy(), conf=threshold, iou=iou)
+        synchronize()
+        inference_ms[f"{model_name}_inference_ms"] = round(
+            (time.perf_counter() - inference_started) * 1000, 3
+        )
+        for box in boxes:
             cls, confidence, coords, mask = _fields(box)
             detection = {"model_stage": model_name, "class_id": cls,
                          "class_name": class_names.get(cls, f"cls_{cls}"),
@@ -173,11 +199,18 @@ def inspect_image(image: np.ndarray, job_id: UUID, attempt: int, config: AoiConf
                else "pass" if part_found else "review")
     images = {"original": _write_jpg(directory / "original.jpg", source),
               "annotated": _write_jpg(directory / "annotated.jpg", annotated)}
+    total_processing_ms = round((time.perf_counter() - total_started) * 1000, 3)
     result = {"job_id": str(job_id), "attempt": attempt, "verdict": verdict,
               "device_id": config.device_id, "result_origin": config.mode,
               "thresholds": {"part_conf": config.part_conf, "defect_conf": config.defect_conf,
                              "part_iou": config.part_iou, "defect_iou": config.defect_iou},
-              "detections": detections, "images": images}
+              "detections": detections, "images": images,
+              "processing_ms": total_processing_ms,
+              "timings": {**inference_ms, "total_processing_ms": total_processing_ms},
+              "models": {
+                  "part": getattr(part_model, "metadata", {"backend": type(part_model).__name__}),
+                  "defect": getattr(defect_model, "metadata", {"backend": type(defect_model).__name__}),
+              }}
     temp = manifest.with_name("result." + uuid4().hex + ".tmp")
     try:
         with temp.open("x", encoding="utf-8") as handle:

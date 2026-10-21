@@ -1,4 +1,5 @@
 from pathlib import Path
+import time
 from uuid import uuid4
 
 import cv2
@@ -7,7 +8,9 @@ import pytest
 
 from fab_virtual_lot.aoi_pipeline import (
     AoiConfig,
+    MockModel,
     RelativeMockModel,
+    UltralyticsModel,
     annotation_style,
     inspect_image,
     model_paths,
@@ -103,3 +106,51 @@ def test_segmentation_mask_is_tinted_in_result_jpg(tmp_path):
     path = Path(result["images"]["annotated"]["local_directory"]) / "annotated.jpg"
     pixel = cv2.imread(str(path))[40, 40]
     assert int(pixel[2]) > int(pixel[0]) + 30
+
+
+def test_inspection_records_per_model_and_total_processing_time(tmp_path):
+    image = np.zeros((16, 16, 3), dtype=np.uint8)
+    config = AoiConfig(tmp_path, .35, .20, .45, .35, "mock", "jetson-wsl")
+
+    class SlowMockModel(MockModel):
+        def predict(self, image, conf, iou):
+            time.sleep(.01)
+            return super().predict(image, conf, iou)
+
+    part = SlowMockModel(0, .97, (1, 1, 10, 10))
+    defect = SlowMockModel(1, 0, (2, 2, 8, 8))
+
+    result = inspect_image(image, uuid4(), 1, config, part, defect)
+
+    assert result["timings"]["part_inference_ms"] >= 8
+    assert result["timings"]["defect_inference_ms"] >= 8
+    assert result["timings"]["total_processing_ms"] >= (
+        result["timings"]["part_inference_ms"]
+        + result["timings"]["defect_inference_ms"]
+    )
+    assert result["processing_ms"] == result["timings"]["total_processing_ms"]
+    assert result["models"] == {
+        "part": {"backend": "mock", "precision": "synthetic", "device": "cpu"},
+        "defect": {"backend": "mock", "precision": "synthetic", "device": "cpu"},
+    }
+
+
+def test_ultralytics_model_identifies_exact_weight_file(tmp_path, monkeypatch):
+    weight = tmp_path / "best.pt"
+    weight.write_bytes(b"exact model weights")
+
+    class FakeYolo:
+        def __init__(self, path):
+            self.path = path
+
+    monkeypatch.setattr("ultralytics.YOLO", FakeYolo)
+
+    model = UltralyticsModel(weight, "cuda:0", precision="fp16")
+
+    assert model.metadata == {
+        "file_name": "best.pt",
+        "sha256": "354c0d1e5c423dbf95ae041d2d43b4385c7b2a851165833aca049239ad59cd42",
+        "backend": "ultralytics-pytorch",
+        "precision": "fp16",
+        "device": "cuda:0",
+    }

@@ -51,7 +51,9 @@ def make_models(config: AoiConfig):
                                   (.40, .47, .63, .58)))
     part, defect = model_paths()
     device = os.environ.get("AOI_INFER_DEVICE", "cpu")
-    return UltralyticsModel(part, device), UltralyticsModel(defect, device)
+    precision = os.environ.get("AOI_INFER_PRECISION", "fp32")
+    return (UltralyticsModel(part, device, precision),
+            UltralyticsModel(defect, device, precision))
 
 
 def main():

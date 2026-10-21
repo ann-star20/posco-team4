@@ -30,6 +30,9 @@ def test_migration_is_repeatable_and_preserves_legacy_event(test_connection):
         ("004_create_aoi_image_artifacts.sql",),
         ("005_create_inference_jobs.sql",),
         ("006_surrogate_and_unity_delivery.sql",),
+        ("007_create_aoi_inference_metrics.sql",),
+        ("008_diagnosis_and_ml_executions.sql",),
+        ("009_ml_execution_attempts.sql",),
     ]
 
 

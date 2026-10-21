@@ -9,7 +9,6 @@ from pathlib import Path
 from queue import Queue
 import sqlite3
 from threading import Event, Lock, Thread
-import time
 from typing import Callable, Mapping
 from uuid import UUID, uuid4
 
@@ -19,6 +18,7 @@ from .aoi_pipeline import AoiConfig, inspect_image
 from .aoi_dispatcher import AoiCompletion, AoiDispatcher, AoiQueueFull
 from .camera_buffer import FrameRingBuffer
 from .camera_preview import CameraPreviewService, PreviewSettings
+from .camera_observability import CameraStatusReporter, status_log_interval
 from .camera_service import CameraCaptureService
 from .camera_source import CameraSettings, make_camera_source
 from .outbox import Outbox
@@ -336,11 +336,8 @@ def build_camera_aoi_services(config: AoiConfig, models: tuple,
     part_model, defect_model = models
 
     def infer(request: dict, image) -> dict:
-        started = time.perf_counter()
         result = inspect_image(image, UUID(request["job_id"]), int(request["attempt"]),
                                config, part_model, defect_model)
-        result = {**result,
-                  "processing_ms": round((time.perf_counter() - started) * 1000, 3)}
         event = make_aoi_event(request, result)
         if event_sink is not None:
             event_sink(event)
@@ -381,7 +378,6 @@ class AoiUnityService:
 
     def inspect(self, request: dict) -> tuple[dict, bytes]:
         _validate_request(request, self.token)
-        started = time.perf_counter()
         result = inspect_image(self.capture(request), UUID(request["job_id"]),
                                int(request["attempt"]), self.config,
                                self.part_model, self.defect_model)
@@ -399,7 +395,7 @@ class AoiUnityService:
                 "request_id": request["request_id"],
                 "lot_id": request["lot_id"],
                 "unit_id": request["unit_id"],
-                "processing_ms": round((time.perf_counter() - started) * 1000, 3),
+                "processing_ms": result["processing_ms"],
             },
         }
         metadata, image = build_unity_result(event)
@@ -487,9 +483,15 @@ def main() -> None:
     print(f"Camera Preview WebSocket ready: "
           f"ws://{preview_host}:{preview_port}/camera/preview", flush=True)
     preview_thread = None
+    status_reporter = CameraStatusReporter(
+        components.camera,
+        components.preview,
+        interval_seconds=status_log_interval(os.environ),
+    )
     try:
         components.preview.start()
         components.camera.start()
+        status_reporter.start()
         with serve(components.preview.handle, preview_host, preview_port,
                    max_size=1024 * 1024) as preview_server, \
                 serve(components.aoi.handle, host, port, max_size=max_bytes) as aoi_server:
@@ -498,6 +500,7 @@ def main() -> None:
             preview_thread.start()
             aoi_server.serve_forever()
     finally:
+        status_reporter.close()
         components.close()
         if preview_thread is not None:
             preview_thread.join(timeout=3)

@@ -1,7 +1,7 @@
 # 통합 이벤트 DB 변경 명세
 
 기준: PostgreSQL 16, 기존 001_create_events.sql은 feat/event-contract에 구현되어 있다.
-상태(2026-10-18): 아래 002 절은 최초 워크플로 설계 기록이다. 현재 실행 SQL은 `database/migrations/`의 001~006이며 Aiven public에 적용했다. 004는 AOI 이미지, 005는 AOI/ML 작업과 ROS dispatch, 006은 전기적 ML 응답 및 Unity 전달 대상을 추가한다. 실제 실행 기준은 [전체 mock 공정 가이드](../runbooks/full-mock-process.md)다.
+상태(2026-10-21): 아래 002 절은 최초 워크플로 설계 기록이다. 현재 실행 SQL은 `database/migrations/`의 001~007이다. 004는 AOI 이미지, 005는 AOI/ML 작업과 ROS dispatch, 006은 전기적 ML 응답 및 Unity 전달 대상, 007은 AOI 모델 식별정보와 추론시간을 추가한다. 실제 DB 적용 여부는 `schema_migrations`에서 별도로 확인한다. 실제 실행 기준은 [전체 mock 공정 가이드](../runbooks/full-mock-process.md)다.
 연결: [아키텍처](../architecture/jetson-ros2-tcad-unity-integration.md), [태스크 03](../tasks/jetson-integration/03-database.md).
 
 ## 1. 변경 이유
@@ -19,6 +19,9 @@
 | aoi_image_artifacts | Jetson 원본/주석 JPG 경로와 탐지 결과 | job·role·device_path 고유 |
 | inference_jobs / inference_dispatches | AOI·전기적 ML 요청 및 ROS outbox | request 멱등, 활성 unit/stage 1건 |
 | surrogate_results | 모델 HTTP 응답 원형과 TCAD 라우팅 판정 | job당 결과 1건 |
+| diagnosis_results | 진단 응답 원형, 원인 분류, 보정 route와 TCAD 라우팅 판정 | job당 결과 1건 |
+| ml_inference_executions | 서로게이트·진단 모델/버전/추론시간/단계 메타데이터 | job·attempt당 1건 |
+| aoi_inference_metrics | AOI 단계별 추론시간과 사용 모델 | job·attempt당 1건, event FK |
 
 ## 2. 002 마이그레이션 설계 기록
 

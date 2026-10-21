@@ -79,3 +79,33 @@ def test_aoi_failure_closes_gateway_job_without_image_rows(test_connection):
         "SELECT status FROM inference_dispatches WHERE job_id=%s",
         (accepted["job_id"],)).fetchone() == ("completed",)
     assert test_connection.execute("SELECT count(*) FROM aoi_image_artifacts").fetchone() == (0,)
+
+
+def test_aoi_event_saves_inference_timings_and_model_identity(test_connection):
+    apply_migrations(test_connection, MIGRATIONS)
+    run_id, event_id, job_id = uuid4(), uuid4(), uuid4()
+    repository = EventRepository(test_connection)
+    repository.ensure_run(run_id, "mock", "mock")
+    part = {"file_name": "part.pt", "sha256": "a" * 64,
+            "backend": "ultralytics-pytorch", "precision": "fp16", "device": "cuda:0"}
+    defect = {"file_name": "defect.pt", "sha256": "b" * 64,
+              "backend": "ultralytics-pytorch", "precision": "fp16", "device": "cuda:0"}
+    event = EventCreate(schema_version=1, event_id=event_id,
+                        event_type="aoi.inspection.completed", source="jetson.aoi",
+                        severity="info", occurred_at=datetime.now(timezone.utc),
+                        payload={"job_id": str(job_id), "attempt": 1, "device_id": "jetson-1",
+                                 "verdict": "pass", "detections": [], "images": {},
+                                 "timings": {"part_inference_ms": 4.25,
+                                             "defect_inference_ms": 5.75,
+                                             "total_processing_ms": 12.5},
+                                 "models": {"part": part, "defect": defect}})
+
+    repository.ingest(event, run_id)
+
+    saved = test_connection.execute(
+        "SELECT job_id,attempt,source_event_id,part_inference_ms,defect_inference_ms,"
+        "total_processing_ms,part_model,defect_model FROM aoi_inference_metrics"
+    ).fetchone()
+    assert saved[:3] == (job_id, 1, event_id)
+    assert tuple(float(value) for value in saved[3:6]) == (4.25, 5.75, 12.5)
+    assert saved[6:] == (part, defect)

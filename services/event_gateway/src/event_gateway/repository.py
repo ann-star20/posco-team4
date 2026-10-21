@@ -66,6 +66,7 @@ class EventRepository:
             receipt = self._insert_event(event, run_id)
             if event.event_type == "aoi.inspection.completed" and event.source == "jetson.aoi":
                 self._store_aoi_images(event)
+                self._store_aoi_metrics(event)
                 self._complete_aoi_job(event, run_id)
             if event.event_type == "aoi.inspection.failed" and event.source == "jetson.aoi":
                 self._fail_aoi_job(event, run_id)
@@ -135,6 +136,21 @@ class EventRepository:
                  image["sha256"], image["byte_size"], image["width"], image["height"],
                  event.occurred_at),
             )
+
+    def _store_aoi_metrics(self, event: EventCreate) -> None:
+        payload = event.payload
+        timings = payload.get("timings")
+        models = payload.get("models")
+        if not timings or not models:
+            return
+        self.connection.execute(
+            "INSERT INTO aoi_inference_metrics (job_id,attempt,source_event_id,"
+            "part_inference_ms,defect_inference_ms,total_processing_ms,part_model,defect_model) "
+            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (job_id,attempt) DO NOTHING",
+            (UUID(payload["job_id"]), int(payload["attempt"]), event.event_id,
+             timings["part_inference_ms"], timings["defect_inference_ms"],
+             timings["total_processing_ms"], Jsonb(models["part"]), Jsonb(models["defect"])),
+        )
 
     def _mark_applied(self, event: EventCreate, run_id: UUID) -> None:
         if event.source != "jetson.virtual_lot":
