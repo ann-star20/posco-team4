@@ -56,7 +56,8 @@ def ingest_diagnosis(repository, event, run_id, settings):
             (job_id, event.event_id, Jsonb(response), category, probability,
              compensation_route, high_confidence, route_status),
         )
-        store_ml_execution(db, event.event_id, job_id, payload["attempt"], "diagnosis", response)
+        store_ml_execution(db, event.event_id, job_id, payload["attempt"], "diagnosis", response,
+                           payload.get("execution_attempt", 1))
         db.execute("UPDATE inference_jobs SET status=%s,result_event_id=%s,updated_at=now() "
                    "WHERE job_id=%s",
                    ("failed" if parsed.status == "failed" else "completed", event.event_id, job_id))

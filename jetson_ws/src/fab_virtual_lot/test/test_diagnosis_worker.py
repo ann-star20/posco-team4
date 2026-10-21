@@ -3,7 +3,7 @@ from uuid import uuid4
 import httpx
 
 from fab_virtual_lot.ml_client import ModelHttpClient
-from fab_virtual_lot.diagnosis_worker import DiagnosisRuntime
+from fab_virtual_lot.diagnosis_worker import DiagnosisRuntime, handle_ack
 
 
 def request():
@@ -45,4 +45,18 @@ def test_diagnosis_runtime_persists_completed_event(tmp_path):
     assert event["source"] == "jetson.diagnosis"
     assert event["payload"]["response"] == response
     assert len(runtime.pending_events()) == 1
+    runtime.close()
+
+
+def test_dead_letter_ack_stops_diagnosis_republish(tmp_path):
+    item = request()
+    runtime = DiagnosisRuntime(tmp_path / "diagnosis.sqlite")
+    runtime.accept(item)
+    event = runtime.process_next(lambda _: {
+        "request_id": item["request_id"], "job_id": item["job_id"],
+        "model_contract_version": "fab-ml-v1", "result_origin": "prod", "status": "succeeded",
+    })
+    handle_ack(runtime, {"status": "dead_lettered", "event_id": event["event_id"],
+                         "run_id": event["run_id"], "sequence": None})
+    assert runtime.pending_events() == []
     runtime.close()

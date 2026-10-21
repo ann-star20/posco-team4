@@ -15,6 +15,14 @@ class DiagnosisRuntime(SurrogateRuntime):
         super().__init__(path, "diagnosis", "diagnosis.completed", "jetson.diagnosis")
 
 
+def handle_ack(runtime, ack):
+    from uuid import UUID
+    if ack.get("status") == "committed":
+        runtime.ack(ack["event_id"], ack["run_id"], ack["sequence"])
+    elif ack.get("status") == "dead_lettered":
+        runtime.outbox.dead_letter(UUID(ack["event_id"]), UUID(ack["run_id"]))
+
+
 def main():
     import rclpy
     from rclpy.node import Node
@@ -53,8 +61,7 @@ def main():
         def receipt(self, msg):
             try:
                 ack = json.loads(msg.data)
-                if ack.get("status") == "committed":
-                    runtime.ack(ack["event_id"], ack["run_id"], ack["sequence"])
+                handle_ack(runtime, ack)
             except (ValueError, KeyError, TypeError):
                 self.get_logger().error("invalid diagnosis ACK")
 

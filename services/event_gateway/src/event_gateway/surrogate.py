@@ -54,6 +54,7 @@ def ingest_surrogate(repository, event, run_id, settings):
                    'VALUES (%s,%s,%s,%s,%s)',(UUID(payload['job_id']),event.event_id,Jsonb(response),route,proposal_id))
         db.execute('UPDATE inference_jobs SET status=%s,result_event_id=%s,updated_at=now() WHERE job_id=%s',
                    ('failed' if status=='failed' else 'completed',event.event_id,UUID(payload['job_id'])))
-        store_ml_execution(db,event.event_id,UUID(payload['job_id']),payload['attempt'],'surrogate',response)
+        store_ml_execution(db,event.event_id,UUID(payload['job_id']),payload['attempt'],'surrogate',response,
+                           payload.get('execution_attempt',1))
         db.execute("UPDATE inference_dispatches SET status='completed' WHERE job_id=%s",(UUID(payload['job_id']),))
         return receipt

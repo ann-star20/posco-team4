@@ -104,3 +104,47 @@ def test_mock_diagnosis_implements_routes(scenario, route, has_proposal):
     parsed = validate_model_response("diagnosis", diagnose(request))
     assert parsed.result_payload.compensation.route == route
     assert (parsed.tcad_proposal is not None) is has_proposal
+
+
+def test_surrogate_requires_all_four_named_outputs():
+    response = base_response()
+    response["result_payload"].pop("id_on")
+    response["result_payload"]["id"] = 20.0
+    with pytest.raises(ValidationError):
+        validate_model_response("surrogate", response)
+
+
+def test_diagnosis_rejects_korean_candidate_and_unknown_recommendation_code():
+    response = base_response()
+    response["result_payload"] = {
+        "decision": {
+            "top_category": "oxide", "category_probabilities": {"oxide": 1.0},
+            "candidates": [{"category": "산화막", "probability": 1.0}],
+        },
+        "next_measurement": {"recommendation_code": "다시측정", "actions": []},
+        "compensation": {"route": "manual", "requires_human_approval": True},
+    }
+    with pytest.raises(ValidationError):
+        validate_model_response("diagnosis", response)
+
+
+def test_tcad_proposal_requires_outputs_and_human_approval():
+    response = base_response()
+    response["result_payload"] = {
+        "decision": {"top_category": "oxide", "category_probabilities": {"oxide": 1.0}},
+        "compensation": {"route": "tcad_verify", "requires_human_approval": True},
+    }
+    response["tcad_proposal"] = {
+        "requires_human_approval": False, "high_confidence": True,
+        "candidates": [{"predicted_outputs": {"vth": 1, "gm": 2, "id_on": 3}}],
+    }
+    with pytest.raises(ValidationError):
+        validate_model_response("diagnosis", response)
+
+
+def test_failed_response_requires_null_proposal():
+    response = base_response("failed")
+    response.update(error_code="INFERENCE_FAILED", error_message="failed",
+                    tcad_proposal={"candidates": []})
+    with pytest.raises(ValidationError):
+        validate_model_response("diagnosis", response)

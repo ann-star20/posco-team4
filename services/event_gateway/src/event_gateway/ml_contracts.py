@@ -1,5 +1,6 @@
 """Validation boundary for fab-ml-v1 model service responses."""
 
+from math import isfinite
 from typing import Any, Literal
 from uuid import UUID
 
@@ -35,6 +36,12 @@ class StageMetric(BaseModel):
     duration_ms: float
     error_code: str | None = None
 
+    @model_validator(mode="after")
+    def validate_duration(self):
+        if not isfinite(self.duration_ms) or self.duration_ms < 0:
+            raise ValueError("duration_ms must be finite and non-negative")
+        return self
+
 
 class ModelMetadata(BaseModel):
     model_config = ConfigDict(extra="allow")
@@ -42,6 +49,20 @@ class ModelMetadata(BaseModel):
     timing_ms: dict[str, float]
     stages: list[StageMetric]
     id_conditions: dict[str, float] | None = None
+
+    @model_validator(mode="after")
+    def validate_timings(self):
+        if any(not isfinite(value) or value < 0 for value in self.timing_ms.values()):
+            raise ValueError("timing values must be finite and non-negative")
+        return self
+
+
+class ElectricalOutputs(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    vth: float
+    gm: float
+    id_on: float
+    bv: float
 
 
 class ValidatedModelResponse(BaseModel):
@@ -65,6 +86,8 @@ class ValidatedModelResponse(BaseModel):
             raise ValueError("failed response requires top-level error fields")
         if self.status == "succeeded" and self.result_payload is None:
             raise ValueError("succeeded response requires result_payload")
+        if self.status == "failed" and self.tcad_proposal is not None:
+            raise ValueError("failed response requires null tcad_proposal")
         return self
 
 
@@ -72,6 +95,32 @@ class DiagnosisDecision(BaseModel):
     model_config = ConfigDict(extra="allow")
     top_category: DiagnosisCategory
     category_probabilities: dict[DiagnosisCategory, float]
+    candidates: list["DiagnosisCandidate"] = []
+
+
+class DiagnosisCandidate(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    category: DiagnosisCategory
+    probability: float
+
+
+class MeasurementAction(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    action_code: str
+
+    @model_validator(mode="after")
+    def validate_code(self):
+        if not self.action_code or not self.action_code.isascii():
+            raise ValueError("action_code must be an English code")
+        return self
+
+
+class NextMeasurement(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    recommendation_code: Literal[
+        "none_needed", "no_improvement", "measure_bv", "more_wafers_2x", "more_wafers_4x"
+    ]
+    actions: list[MeasurementAction] = []
 
 
 class Compensation(BaseModel):
@@ -84,10 +133,24 @@ class DiagnosisResult(BaseModel):
     model_config = ConfigDict(extra="allow")
     decision: DiagnosisDecision
     compensation: Compensation
+    next_measurement: NextMeasurement | None = None
+
+
+class TcadCandidate(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    predicted_outputs: ElectricalOutputs
+
+
+class TcadProposal(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    requires_human_approval: Literal[True]
+    high_confidence: bool
+    candidates: list[TcadCandidate]
 
 
 class DiagnosisModelResponse(ValidatedModelResponse):
     result_payload: DiagnosisResult | None
+    tcad_proposal: TcadProposal | None
 
     @model_validator(mode="after")
     def validate_route(self):
@@ -106,4 +169,7 @@ def validate_model_response(task_type: str, response: dict) -> ValidatedModelRes
         return DiagnosisModelResponse.model_validate(response)
     if task_type != "surrogate":
         raise ValueError("unsupported ML task type")
-    return ValidatedModelResponse.model_validate(response)
+    parsed = ValidatedModelResponse.model_validate(response)
+    if parsed.status == "succeeded":
+        ElectricalOutputs.model_validate(parsed.result_payload)
+    return parsed
