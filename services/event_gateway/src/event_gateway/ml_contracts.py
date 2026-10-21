@@ -6,6 +6,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
+from .tcad_contracts import ProcessParameters
+
 
 DiagnosisCategory = Literal[
     "normal", "dose", "epi", "oxide", "dose+epi", "dose+oxide",
@@ -138,6 +140,7 @@ class DiagnosisResult(BaseModel):
 
 class TcadCandidate(BaseModel):
     model_config = ConfigDict(extra="allow")
+    process_parameters: ProcessParameters
     predicted_outputs: ElectricalOutputs
 
 
@@ -146,6 +149,12 @@ class TcadProposal(BaseModel):
     requires_human_approval: Literal[True]
     high_confidence: bool
     candidates: list[TcadCandidate]
+
+    @model_validator(mode="after")
+    def validate_candidates(self):
+        if not self.candidates:
+            raise ValueError("tcad proposal requires at least one candidate")
+        return self
 
 
 class DiagnosisModelResponse(ValidatedModelResponse):

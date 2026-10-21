@@ -35,6 +35,13 @@ class Settings:
     tcad_mock_scenario: str = "pass"
     tcad_http_timeout_seconds: float = 10
     tcad_poll_interval_seconds: float = 5
+    tcad_api_token: str = field(repr=False, default="")
+    tcad_auto_submit_enabled: bool = True
+    tcad_max_concurrent_jobs: int = 1
+    tcad_connect_timeout_seconds: float = 5
+    tcad_request_timeout_seconds: float = 30
+    tcad_job_deadline_seconds: int = 6000
+    tcad_policy_version: str = "route-v1"
     ros_domain_id: str | None = None
     rmw_implementation: str | None = None
     ros_event_topic: str = "/fab/events"
@@ -80,6 +87,20 @@ class Settings:
             raise ValueError("TCAD_MODE and UNITY_MODE must be mock or prod")
         if tcad_mode == "prod" and not get("TCAD_PROD_URL"):
             raise ValueError("TCAD_PROD_URL is required in prod mode")
+        if tcad_mode == "prod" and not get("TCAD_API_TOKEN"):
+            raise ValueError("TCAD_API_TOKEN is required in prod mode")
+        auto_submit = get("TCAD_AUTO_SUBMIT_ENABLED", "true").lower()
+        if auto_submit not in {"true", "false"}:
+            raise ValueError("TCAD_AUTO_SUBMIT_ENABLED must be true or false")
+        positive_values = {
+            "TCAD_MAX_CONCURRENT_JOBS": int(get("TCAD_MAX_CONCURRENT_JOBS", "1")),
+            "TCAD_CONNECT_TIMEOUT_SECONDS": float(get("TCAD_CONNECT_TIMEOUT_SECONDS", "5")),
+            "TCAD_REQUEST_TIMEOUT_SECONDS": float(get("TCAD_REQUEST_TIMEOUT_SECONDS", "30")),
+            "TCAD_JOB_DEADLINE_SECONDS": int(get("TCAD_JOB_DEADLINE_SECONDS", "6000")),
+        }
+        for name, value in positive_values.items():
+            if value <= 0:
+                raise ValueError(f"{name} must be positive")
         if get('SURROGATE_MODE','mock') not in {'mock','prod'}:
             raise ValueError('invalid SURROGATE_MODE')
         if get('DIAGNOSIS_MODE','mock') not in {'mock','prod'}:
@@ -96,6 +117,13 @@ class Settings:
             tcad_mock_scenario=get("TCAD_MOCK_SCENARIO", "pass"),
             tcad_http_timeout_seconds=float(get("TCAD_HTTP_TIMEOUT_SECONDS", "10")),
             tcad_poll_interval_seconds=float(get("TCAD_POLL_INTERVAL_SECONDS", "5")),
+            tcad_api_token=get("TCAD_API_TOKEN"),
+            tcad_auto_submit_enabled=auto_submit == "true",
+            tcad_max_concurrent_jobs=int(positive_values["TCAD_MAX_CONCURRENT_JOBS"]),
+            tcad_connect_timeout_seconds=positive_values["TCAD_CONNECT_TIMEOUT_SECONDS"],
+            tcad_request_timeout_seconds=positive_values["TCAD_REQUEST_TIMEOUT_SECONDS"],
+            tcad_job_deadline_seconds=int(positive_values["TCAD_JOB_DEADLINE_SECONDS"]),
+            tcad_policy_version=get("TCAD_POLICY_VERSION", "route-v1"),
             ros_domain_id=get("ROS_DOMAIN_ID") or None,
             rmw_implementation=get("RMW_IMPLEMENTATION") or None,
             ros_event_topic=get("ROS_EVENT_TOPIC", "/fab/events"),

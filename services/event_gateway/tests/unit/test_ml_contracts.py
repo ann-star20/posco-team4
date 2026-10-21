@@ -148,3 +148,34 @@ def test_failed_response_requires_null_proposal():
                     tcad_proposal={"candidates": []})
     with pytest.raises(ValidationError):
         validate_model_response("diagnosis", response)
+
+
+def test_tcad_candidate_requires_process_parameters():
+    response = base_response()
+    response["anomaly_detected"] = True
+    response["result_payload"] = {
+        "decision": {"top_category": "oxide", "category_probabilities": {"oxide": 1.0}},
+        "compensation": {"route": "tcad_verify", "requires_human_approval": True},
+    }
+    response["tcad_proposal"] = {
+        "requires_human_approval": True, "high_confidence": True,
+        "candidates": [{
+            "predicted_outputs": {"vth": 1, "gm": 2, "id_on": 3, "bv": 4},
+        }],
+    }
+    with pytest.raises(ValidationError):
+        validate_model_response("diagnosis", response)
+
+
+def test_tcad_proposal_rejects_empty_candidate_list():
+    response = base_response()
+    response["anomaly_detected"] = True
+    response["result_payload"] = {
+        "decision": {"top_category": "oxide", "category_probabilities": {"oxide": 1.0}},
+        "compensation": {"route": "tcad_verify", "requires_human_approval": True},
+    }
+    response["tcad_proposal"] = {
+        "requires_human_approval": True, "high_confidence": True, "candidates": [],
+    }
+    with pytest.raises(ValidationError):
+        validate_model_response("diagnosis", response)
