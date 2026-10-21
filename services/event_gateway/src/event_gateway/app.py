@@ -58,6 +58,14 @@ class DiagnosisRequest(SurrogateRequest):
     stage_id: str = Field(default='diagnosis', min_length=1)
 
 
+def request_model_for_type(message_type: str):
+    return {
+        'inspection.requested': InspectionRequest,
+        'surrogate.requested': SurrogateRequest,
+        'diagnosis.requested': DiagnosisRequest,
+    }.get(message_type)
+
+
 def create_app(settings: Settings) -> FastAPI:
     app = FastAPI(title="Virtual Fab event gateway")
 
@@ -147,8 +155,7 @@ def create_app(settings: Settings) -> FastAPI:
                     await websocket.send_json({"type": "request.rejected", "code": "unsupported_type"})
                     continue
                 try:
-                    model = ({'surrogate.requested': SurrogateRequest,
-                              'diagnosis.requested': DiagnosisRequest}.get(raw['type'], InspectionRequest))
+                    model = request_model_for_type(raw['type'])
                     request = model.model_validate(
                         {key: value for key, value in raw.items() if key != "type"})
                     submitter = submit_surrogate if model is SurrogateRequest else (

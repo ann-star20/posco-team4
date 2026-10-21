@@ -32,6 +32,14 @@ def spin_ros(node, ros) -> None:
         pass
 
 
+def publisher_for_task(node, task_type):
+    if task_type == 'surrogate':
+        return node.surrogate_pub
+    if task_type == 'diagnosis':
+        return node.diagnosis_pub
+    return node.inference_pub
+
+
 def store_ros_event(repository: EventRepository, event: EventCreate,
                     run_id: str, settings: Settings):
     run_uuid = UUID(run_id)
@@ -197,9 +205,7 @@ def main() -> None:
                 for payload in due:
                     message = String()
                     message.data = json.dumps(payload, separators=(",", ":"))
-                    publisher = (node.surrogate_pub if payload['task_type']=='surrogate' else
-                                 node.diagnosis_pub if payload['task_type']=='diagnosis' else
-                                 node.inference_pub)
+                    publisher = publisher_for_task(node, payload['task_type'])
                     publisher.publish(message)
             except Exception:
                 logger.exception("AOI request dispatch failed; DB outbox remains due")
