@@ -12,17 +12,26 @@ from psycopg.types.json import Jsonb
 from .contracts import EventCreate, VerificationResult
 from .repository import EventRepository
 from .tcad_client import TcadClient
+from .tcad_candidate_worker import TcadCandidateWorker
 
 
 class VerificationWorker:
-    def __init__(self, connection: psycopg.Connection, http_factory=None):
+    def __init__(self, connection: psycopg.Connection, http_factory=None, settings=None):
         self.connection = connection
         self.http_factory = http_factory or (
             lambda url: httpx.Client(base_url=url, timeout=10)
         )
         self.repository = EventRepository(connection)
+        self.candidate_worker = (
+            TcadCandidateWorker(connection, settings, self.http_factory) if settings else None
+        )
 
     def run_once(self) -> int:
+        if self.candidate_worker and self.candidate_worker.run_once():
+            return 1
+        return self._run_legacy_once()
+
+    def _run_legacy_once(self) -> int:
         with self.connection.transaction():
             row = self.connection.execute(
                 "SELECT j.request_id,j.proposal_id,j.tcad_mode,j.endpoint_url,j.remote_job_id,"
@@ -178,7 +187,7 @@ def main() -> None:
     while True:
         try:
             with psycopg.connect(settings.database_url, autocommit=True) as connection:
-                count = VerificationWorker(connection).run_once()
+                count = VerificationWorker(connection, settings=settings).run_once()
         except (psycopg.Error, httpx.HTTPError):
             count = 0
         if not count:
