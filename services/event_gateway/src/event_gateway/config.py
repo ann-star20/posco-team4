@@ -42,7 +42,9 @@ class Settings:
     ros_command_topic: str = "/fab/commands"
     ros_inference_request_topic: str = "/fab/inference_requests"
     ros_surrogate_request_topic: str = '/fab/surrogate_requests'
+    ros_diagnosis_request_topic: str = '/fab/diagnosis_requests'
     surrogate_mode: Mode = 'mock'
+    diagnosis_mode: Mode = 'mock'
     correction_target: str = 'jetson'
     gateway_host: str = "0.0.0.0"
     gateway_port: int = 8000
@@ -80,6 +82,8 @@ class Settings:
             raise ValueError("TCAD_PROD_URL is required in prod mode")
         if get('SURROGATE_MODE','mock') not in {'mock','prod'}:
             raise ValueError('invalid SURROGATE_MODE')
+        if get('DIAGNOSIS_MODE','mock') not in {'mock','prod'}:
+            raise ValueError('invalid DIAGNOSIS_MODE')
         if get('CORRECTION_TARGET','jetson') not in {'jetson','unity'}:
             raise ValueError('invalid CORRECTION_TARGET')
         return cls(
@@ -99,7 +103,9 @@ class Settings:
             ros_command_topic=get("ROS_COMMAND_TOPIC", "/fab/commands"),
             ros_inference_request_topic=get("ROS_INFERENCE_REQUEST_TOPIC", "/fab/inference_requests"),
             ros_surrogate_request_topic=get('ROS_SURROGATE_REQUEST_TOPIC','/fab/surrogate_requests'),
+            ros_diagnosis_request_topic=get('ROS_DIAGNOSIS_REQUEST_TOPIC','/fab/diagnosis_requests'),
             surrogate_mode=get('SURROGATE_MODE','mock'),
+            diagnosis_mode=get('DIAGNOSIS_MODE','mock'),
             correction_target=get('CORRECTION_TARGET','jetson'),
             gateway_host=get("GATEWAY_HOST", "0.0.0.0"),
             gateway_port=int(get("GATEWAY_PORT", "8000")),

@@ -54,6 +54,10 @@ class SurrogateRequest(BaseModel):
     input_payload: dict
 
 
+class DiagnosisRequest(SurrogateRequest):
+    stage_id: str = Field(default='diagnosis', min_length=1)
+
+
 def create_app(settings: Settings) -> FastAPI:
     app = FastAPI(title="Virtual Fab event gateway")
 
@@ -90,10 +94,23 @@ def create_app(settings: Settings) -> FastAPI:
         except JobConflict as exc:
             raise HTTPException(409,str(exc)) from exc
 
+    def submit_diagnosis(request: DiagnosisRequest):
+        try:
+            with psycopg.connect(settings.database_url, autocommit=True) as connection:
+                body=request.model_dump(mode='json') | {'diagnosis_mode':settings.diagnosis_mode}
+                return submit_inference_job(connection,body,settings.tcad_mode,settings.unity_mode,'diagnosis')
+        except JobConflict as exc:
+            raise HTTPException(409,str(exc)) from exc
+
     @app.post('/api/v1/surrogate-jobs',status_code=202)
     def create_surrogate_job(request: SurrogateRequest,x_unity_token: str | None = Header(default=None)):
         authorize_unity(x_unity_token)
         return submit_surrogate(request)
+
+    @app.post('/api/v1/diagnosis-jobs',status_code=202)
+    def create_diagnosis_job(request: DiagnosisRequest,x_unity_token: str | None = Header(default=None)):
+        authorize_unity(x_unity_token)
+        return submit_diagnosis(request)
 
     @app.post("/api/v1/inspection-jobs", status_code=202)
     def create_inspection_job(request: InspectionRequest,
@@ -126,14 +143,17 @@ def create_app(settings: Settings) -> FastAPI:
         try:
             while True:
                 raw = await websocket.receive_json()
-                if not isinstance(raw,dict) or raw.get("type") not in {'inspection.requested','surrogate.requested'}:
+                if not isinstance(raw,dict) or raw.get("type") not in {'inspection.requested','surrogate.requested','diagnosis.requested'}:
                     await websocket.send_json({"type": "request.rejected", "code": "unsupported_type"})
                     continue
                 try:
-                    model = SurrogateRequest if raw['type']=='surrogate.requested' else InspectionRequest
+                    model = ({'surrogate.requested': SurrogateRequest,
+                              'diagnosis.requested': DiagnosisRequest}.get(raw['type'], InspectionRequest))
                     request = model.model_validate(
                         {key: value for key, value in raw.items() if key != "type"})
-                    result = await asyncio.to_thread(submit_surrogate if model is SurrogateRequest else submit, request)
+                    submitter = submit_surrogate if model is SurrogateRequest else (
+                        submit_diagnosis if model is DiagnosisRequest else submit)
+                    result = await asyncio.to_thread(submitter, request)
                 except ValidationError:
                     await websocket.send_json({"type": "request.rejected", "code": "invalid_request"})
                     continue

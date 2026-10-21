@@ -45,6 +45,8 @@ def test_inherits_ros_environment(monkeypatch):
     assert settings.rmw_implementation == "rmw_fastrtps_cpp"
     assert settings.ros_event_topic == "/fab/events"
     assert settings.ros_command_topic == "/fab/commands"
+    assert settings.ros_diagnosis_request_topic == "/fab/diagnosis_requests"
+    assert settings.diagnosis_mode == "mock"
 
 
 def test_secrets_are_redacted(monkeypatch):

@@ -9,6 +9,7 @@ from uuid import UUID, uuid5
 
 import httpx
 from .outbox import Outbox
+from .ml_client import ModelHttpClient
 
 
 class SingleFlightExecutor:
@@ -50,35 +51,25 @@ class SingleFlightExecutor:
         self.executor.shutdown(wait=True, cancel_futures=False)
 
 
-class SurrogateClient:
+class SurrogateClient(ModelHttpClient):
     def __init__(self, mode, url, http):
-        if mode not in {'mock','prod'} or not url:raise ValueError('model mode and URL required')
-        self.mode,self.url,self.http=mode,url.rstrip('/'),http
-
-    def __call__(self, request):
-        if request.get('surrogate_mode',self.mode)!=self.mode:raise ValueError('worker mode mismatch')
-        response=self.http.post(self.url+'/api/v1/predict',json=request)
-        response.raise_for_status();body=response.json()
-        if (body.get('request_id')!=request['request_id'] or body.get('job_id')!=request['job_id']
-                or body.get('result_origin')!=self.mode
-                or body.get('model_contract_version')!=request['model_contract_version']
-                or body.get('status') not in {'succeeded','failed'}):
-            raise ValueError('model response identity/contract/origin mismatch')
-        return body
+        super().__init__(mode, url, '/api/v1/predict', http)
 
 
 class SurrogateRuntime:
-    def __init__(self, path):
+    def __init__(self, path, task_type='surrogate', event_type='surrogate.completed',
+                 source='jetson.surrogate'):
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         self.outbox = Outbox(path)
         self.lock = self.outbox.lock
         self.db = self.outbox.connection
         self.db.execute('CREATE TABLE IF NOT EXISTS ml_inbox(job_id TEXT PRIMARY KEY, body TEXT NOT NULL,status TEXT NOT NULL DEFAULT \'queued\')')
         self.db.commit()
+        self.task_type, self.event_type, self.source = task_type, event_type, source
 
     def accept(self, request):
         for key in ('job_id','request_id','run_id'): UUID(request[key])
-        if request.get('task_type') != 'surrogate': raise ValueError('invalid task')
+        if request.get('task_type') != self.task_type: raise ValueError('invalid task')
         body = json.dumps(request, sort_keys=True)
         with self.lock, self.db:
             row = self.db.execute('SELECT body FROM ml_inbox WHERE job_id=?',(request['job_id'],)).fetchone()
@@ -98,9 +89,9 @@ class SurrogateRuntime:
             with self.lock, self.db:
                 self.db.execute("UPDATE ml_inbox SET status='queued' WHERE job_id=?",(job_id,))
             raise
-        event_id=str(uuid5(UUID(job_id),'surrogate.completed:'+str(request['attempt'])))
+        event_id=str(uuid5(UUID(job_id),self.event_type+':'+str(request['attempt'])))
         event={'schema_version':1,'event_id':event_id,'run_id':request['run_id'],
-               'event_type':'surrogate.completed','source':'jetson.surrogate','severity':'info',
+               'event_type':self.event_type,'source':self.source,'severity':'info',
                'occurred_at':datetime.now(timezone.utc).isoformat(),
                'payload':{**request,'response':response}}
         with self.lock, self.db:

@@ -21,10 +21,10 @@ def submit_aoi_job(connection: psycopg.Connection, request: dict,
 
 def submit_inference_job(connection: psycopg.Connection, request: dict,
                          tcad_mode: str, unity_mode: str, task_type: str) -> dict:
-    if task_type not in {'aoi', 'surrogate'}:
+    if task_type not in {'aoi', 'surrogate', 'diagnosis'}:
         raise ValueError('invalid task type')
     # Keep legacy AOI request hashes stable across this extension.
-    if task_type == 'surrogate':
+    if task_type in {'surrogate', 'diagnosis'}:
         request = {**request, 'task_type': task_type}
     request_id = UUID(request["request_id"])
     run_id = UUID(request["run_id"])
@@ -87,6 +87,7 @@ def claim_due_aoi_requests(connection: psycopg.Connection, limit: int = 20) -> l
                  "request_id": str(request_id), "run_id": str(run_id),
                  "lot_id": lot_id, "attempt": attempt,
                  **({"fixture_name": body["fixture_name"]} if body.get("fixture_name") else {}),
-                 **({key: body[key] for key in ('model_contract_version','input_payload','surrogate_mode','surrogate_url') if key in body}
-                    if body.get('task_type') == 'surrogate' else {})}
+                 **({key: body[key] for key in ('model_contract_version','input_payload','surrogate_mode',
+                                                'surrogate_url','diagnosis_mode','diagnosis_url') if key in body}
+                    if body.get('task_type') in {'surrogate','diagnosis'} else {})}
                 for job_id, request_id, run_id, lot_id, attempt, body in rows]

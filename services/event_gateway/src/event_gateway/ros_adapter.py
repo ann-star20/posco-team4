@@ -40,6 +40,9 @@ def store_ros_event(repository: EventRepository, event: EventCreate,
     if event.event_type == 'surrogate.completed':
         from .surrogate import ingest_surrogate
         return ingest_surrogate(repository,event,run_uuid,settings)
+    if event.event_type == 'diagnosis.completed':
+        from .diagnosis import ingest_diagnosis
+        return ingest_diagnosis(repository,event,run_uuid,settings)
     if event.event_type != "correction.proposed":
         return repository.ingest(event, run_uuid)
     proposal = CorrectionProposal.model_validate(event.payload)
@@ -94,6 +97,7 @@ def main() -> None:
             self.command_pub = self.create_publisher(String, settings.ros_command_topic, 10)
             self.inference_pub = self.create_publisher(String, settings.ros_inference_request_topic, 10)
             self.surrogate_pub = self.create_publisher(String, settings.ros_surrogate_request_topic, 10)
+            self.diagnosis_pub = self.create_publisher(String, settings.ros_diagnosis_request_topic, 10)
             self.adapter = RosEventAdapter(self.enqueue, self.enqueue_dead)
             self.create_subscription(String, settings.ros_event_topic,
                                      lambda msg: self.adapter.receive(msg.data), 10)
@@ -193,7 +197,9 @@ def main() -> None:
                 for payload in due:
                     message = String()
                     message.data = json.dumps(payload, separators=(",", ":"))
-                    publisher = node.surrogate_pub if payload['task_type']=='surrogate' else node.inference_pub
+                    publisher = (node.surrogate_pub if payload['task_type']=='surrogate' else
+                                 node.diagnosis_pub if payload['task_type']=='diagnosis' else
+                                 node.inference_pub)
                     publisher.publish(message)
             except Exception:
                 logger.exception("AOI request dispatch failed; DB outbox remains due")

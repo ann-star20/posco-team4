@@ -11,3 +11,4 @@ def test_gateway_exposes_replay_and_stream():
     assert "/api/v1/inspection-jobs" in paths
     assert "/api/v1/control" in paths
     assert "/api/v1/inspection-jobs/{job_id}" in paths
+    assert "/api/v1/diagnosis-jobs" in paths

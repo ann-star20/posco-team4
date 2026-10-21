@@ -20,6 +20,7 @@ setup(
         "fab_aoi_worker = fab_virtual_lot.aoi_worker:main",
         "fab_aoi_request = fab_virtual_lot.aoi_request:main",
         "fab_surrogate_worker = fab_virtual_lot.surrogate_worker:main",
+        "fab_diagnosis_worker = fab_virtual_lot.diagnosis_worker:main",
         "fab_aoi_unity_server = fab_virtual_lot.aoi_unity:main",
     ]},
 )

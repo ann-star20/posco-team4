@@ -3,6 +3,8 @@ from uuid import UUID, uuid5
 from psycopg.types.json import Jsonb
 from .contracts import CorrectionProposal
 from .repository import EventConflict
+from .ml_contracts import validate_model_response
+from .ml_execution import store_ml_execution
 
 
 def ingest_surrogate(repository, event, run_id, settings):
@@ -21,6 +23,7 @@ def ingest_surrogate(repository, event, run_id, settings):
             return receipt
         if row[6]=='cancelled':raise EventConflict('ML job cancelled')
         response=payload['response']
+        parsed=validate_model_response('surrogate',response)
         if (response.get('request_id')!=str(row[1]) or response.get('job_id')!=payload['job_id']
                 or response.get('result_origin')!=row[4].get('surrogate_mode','mock')):
             raise EventConflict('ML response identity or origin mismatch')
@@ -51,5 +54,6 @@ def ingest_surrogate(repository, event, run_id, settings):
                    'VALUES (%s,%s,%s,%s,%s)',(UUID(payload['job_id']),event.event_id,Jsonb(response),route,proposal_id))
         db.execute('UPDATE inference_jobs SET status=%s,result_event_id=%s,updated_at=now() WHERE job_id=%s',
                    ('failed' if status=='failed' else 'completed',event.event_id,UUID(payload['job_id'])))
+        store_ml_execution(db,event.event_id,UUID(payload['job_id']),payload['attempt'],'surrogate',response)
         db.execute("UPDATE inference_dispatches SET status='completed' WHERE job_id=%s",(UUID(payload['job_id']),))
         return receipt
