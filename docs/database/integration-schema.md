@@ -11,6 +11,7 @@
 - `tcad_verification_candidates`는 후보별 외부 TCAD 요청, lease, 진행 상태와 결과를 소유한다.
 - `verification_jobs`는 기존 단일 보정 제안 흐름의 호환 테이블이며 신규 진단 후보를 저장하지 않는다.
 - 후보는 `(proposal_id, candidate_index)`와 결정론적 `tcad_request_id`로 중복을 방지한다.
+- `diagnosis_results.tcad_proposal_group_id`는 신규 후보 묶음을 가리키며, 기존 `proposal_id` FK는 레거시 보정 제안 호환용으로 유지한다.
 
 ## 1. 변경 이유
 

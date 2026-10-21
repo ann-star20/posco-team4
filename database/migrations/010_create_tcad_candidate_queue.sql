@@ -66,6 +66,10 @@ ALTER TABLE tcad_proposal_groups
     REFERENCES tcad_verification_candidates(tcad_request_id)
     DEFERRABLE INITIALLY DEFERRED;
 
+ALTER TABLE diagnosis_results
+    ADD COLUMN tcad_proposal_group_id UUID
+    REFERENCES tcad_proposal_groups(proposal_id);
+
 CREATE INDEX tcad_verification_candidates_due_idx
     ON tcad_verification_candidates(next_attempt_at, created_at)
     WHERE status IN ('pending','submitting','queued','running');

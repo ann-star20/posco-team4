@@ -7,6 +7,7 @@ from psycopg.types.json import Jsonb
 from .ml_contracts import validate_model_response
 from .ml_execution import store_ml_execution
 from .repository import EventConflict
+from .tcad_queue import admit_tcad_candidates
 
 
 def ingest_diagnosis(repository, event, run_id, settings):
@@ -49,6 +50,12 @@ def ingest_diagnosis(repository, event, run_id, settings):
             route_status = "normal" if compensation.route == "no_action" else "review_required"
 
         job_id = UUID(payload["job_id"])
+        proposal_id = admit_tcad_candidates(
+            db, event=event, run_id=run_id, job_id=job_id, request_id=row[1],
+            request_body=row[4], parsed=parsed, response=response, settings=settings,
+        )
+        if proposal_id is not None:
+            route_status = "verification_queued"
         db.execute(
             "INSERT INTO diagnosis_results(job_id,source_event_id,response_body,top_category,"
             "top_probability,compensation_route,high_confidence,routing_status) "
@@ -56,6 +63,11 @@ def ingest_diagnosis(repository, event, run_id, settings):
             (job_id, event.event_id, Jsonb(response), category, probability,
              compensation_route, high_confidence, route_status),
         )
+        if proposal_id is not None:
+            db.execute(
+                "UPDATE diagnosis_results SET tcad_proposal_group_id=%s WHERE job_id=%s",
+                (proposal_id, job_id),
+            )
         store_ml_execution(db, event.event_id, job_id, payload["attempt"], "diagnosis", response,
                            payload.get("execution_attempt", 1))
         db.execute("UPDATE inference_jobs SET status=%s,result_event_id=%s,updated_at=now() "

@@ -20,3 +20,4 @@ def test_tcad_candidate_migration_defines_durable_queue_contract():
     assert "CHECK ((lease_token IS NULL) = (lease_until IS NULL))" in sql
     assert "WHERE status IN ('pending','submitting','queued','running')" in sql
     assert "selected_tcad_request_id" in sql
+    assert "ADD COLUMN tcad_proposal_group_id UUID" in sql
