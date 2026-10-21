@@ -9,7 +9,7 @@
 | HTTP/제어 WS → AOI 작업 DB → ROS 요청 | 구현 | `app.py`, `inference_jobs.py`, `ros_adapter.py`. HTTP 실제 요청 시험, 제어 WS TestClient 시험. |
 | WSL/Jetson 역할 AOI → 이미지 저장 → ROS 결과 | 구현 | 모델 1회 로드, fixture 이미지, 부품·결함 bbox/score 및 JPG/JSON 저장. 실제 Jetson GPU·카메라 시험은 아님. |
 | AOI 결과 → Aiven → ROS 커밋 ACK → Unity용 WS | 구현·개별 실통신 확인 | 실제 Aiven 행/이미지 메타데이터, SQLite ACK, HTTP/WS 재생 일치. 실제 Unity 앱은 범위 밖. |
-| 전기적 특성 ML 요청 → Jetson 모델/mock → 결과 DB·WS | 미구현 | `ml-integration-contract.md` 계약안만 있음. `SURROGATE_MODE`를 읽는 Worker/adapter가 없음. |
+| 전기적 특성 ML 요청 → Jetson 모델/mock → 결과 DB·WS | 구현·실서비스 미기동 | Gateway WebSocket/ROS dispatch, `fab_surrogate_worker`, mock HTTP 모델, DB 결과 저장은 구현됐다. 실행 순서는 `surrogate-ml-websocket-e2e.md`를 따른다. 실제 GP 모델 연결·실측 E2E는 별도 수행해야 한다. |
 | ML 결과 → 조건 판정 → TCAD 검증 작업 생성 | 미구현 | 현재는 `correction.proposed` 보정안이 이미 만들어져 들어와야 검증 작업을 생성함. ML 응답만으로 생성하지 않음. |
 | 보정안 → TCAD HTTP → 결과 DB → Unity용 WS | 구현·mock 시험 있음 | `verification_worker.py`, `tcad_client.py`, `mock_tcad/app.py`. VerificationWorker 별도 실행 필요. |
 | TCAD HTTP Service → 실제 Silvaco | 서비스 틀만 구현 | 실제 실행·덱 생성·결과 파싱은 미구현. prod readiness는 미준비를 반환함. |
