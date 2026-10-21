@@ -1,8 +1,16 @@
 # 통합 이벤트 DB 변경 명세
 
 기준: PostgreSQL 16, 기존 001_create_events.sql은 feat/event-contract에 구현되어 있다.
-상태(2026-10-21): 아래 002 절은 최초 워크플로 설계 기록이다. 현재 실행 SQL은 `database/migrations/`의 001~007이다. 004는 AOI 이미지, 005는 AOI/ML 작업과 ROS dispatch, 006은 전기적 ML 응답 및 Unity 전달 대상, 007은 AOI 모델 식별정보와 추론시간을 추가한다. 실제 DB 적용 여부는 `schema_migrations`에서 별도로 확인한다. 실제 실행 기준은 [전체 mock 공정 가이드](../runbooks/full-mock-process.md)다.
+상태(2026-10-21): 아래 002 절은 최초 워크플로 설계 기록이다. 현재 실행 SQL은 `database/migrations/`의 001~010이다. 004는 AOI 이미지, 005는 AOI/ML 작업과 ROS dispatch, 006은 전기적 ML 응답 및 Unity 전달 대상, 007은 AOI 모델 식별정보와 추론시간, 008~009는 진단 및 ML 실행 이력, 010은 TCAD 후보 큐를 추가한다. 실제 DB 적용 여부는 `schema_migrations`에서 별도로 확인한다. 실제 실행 기준은 [전체 mock 공정 가이드](../runbooks/full-mock-process.md)다.
 연결: [아키텍처](../architecture/jetson-ros2-tcad-unity-integration.md), [태스크 03](../tasks/jetson-integration/03-database.md).
+
+## TCAD 진단 후보 큐 (010)
+
+- `diagnosis_results`는 모델의 원형 응답과 최종 라우팅 결정을 소유한다.
+- `tcad_proposal_groups`는 진단 이벤트 하나의 후보 묶음, 정책 스냅샷 및 집계 상태를 소유한다.
+- `tcad_verification_candidates`는 후보별 외부 TCAD 요청, lease, 진행 상태와 결과를 소유한다.
+- `verification_jobs`는 기존 단일 보정 제안 흐름의 호환 테이블이며 신규 진단 후보를 저장하지 않는다.
+- 후보는 `(proposal_id, candidate_index)`와 결정론적 `tcad_request_id`로 중복을 방지한다.
 
 ## 1. 변경 이유
 

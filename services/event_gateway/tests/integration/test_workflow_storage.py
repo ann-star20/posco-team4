@@ -33,6 +33,7 @@ def test_migration_is_repeatable_and_preserves_legacy_event(test_connection):
         ("007_create_aoi_inference_metrics.sql",),
         ("008_diagnosis_and_ml_executions.sql",),
         ("009_ml_execution_attempts.sql",),
+        ("010_create_tcad_candidate_queue.sql",),
     ]
 
 
