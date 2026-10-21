@@ -53,6 +53,18 @@ def test_real_http_replay_and_websocket(test_connection):
             "occurred_at": "2026-10-14T00:00:00Z", "payload": {"lot_id": "LOT-1"},
         })
         receipt = EventRepository(connection).ingest(event, run_id)
+        tcad_event = EventCreate.model_validate({
+            "schema_version": 1, "event_id": str(uuid4()),
+            "event_type": "tcad.verification.candidate_running",
+            "source": "gateway.tcad", "severity": "info",
+            "occurred_at": "2026-10-14T00:00:01Z",
+            "payload": {
+                "request_id": str(uuid4()), "proposal_id": str(uuid4()),
+                "tcad_request_id": str(uuid4()), "candidate_index": 0,
+                "status": "running", "progress": {"stage": "iv"},
+            },
+        })
+        tcad_receipt = EventRepository(connection).ingest(tcad_event, run_id)
         params = {"run_id": str(run_id), "after_sequence": 0}
         response = httpx.get(f"http://127.0.0.1:{port}/api/v1/events", params=params,
                              timeout=3)
@@ -63,6 +75,12 @@ def test_real_http_replay_and_websocket(test_connection):
             message = json.loads(websocket.recv(timeout=3))
             assert message["event_id"] == str(event.event_id)
             assert message["sequence"] == receipt.sequence
+        replay = httpx.get(
+            f"http://127.0.0.1:{port}/api/v1/events",
+            params={"run_id": str(run_id), "after_sequence": receipt.sequence}, timeout=3,
+        ).json()["events"]
+        assert [item["sequence"] for item in replay] == [tcad_receipt.sequence]
+        assert replay[0]["payload"]["tcad_request_id"] == tcad_event.payload["tcad_request_id"]
         from importlib.util import find_spec
         assert find_spec('event_gateway.communication_check') is not None
         from event_gateway.communication_check import check_gateway

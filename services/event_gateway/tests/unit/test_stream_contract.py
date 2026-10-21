@@ -17,3 +17,24 @@ def test_correction_event_exposes_recommended_values_and_mock_origin():
     assert formatted["correction"]["oxide_thickness"]["recommended"] == 0.97
     assert formatted["correction"]["body_dose"]["delta"] == 0.05
     assert formatted["approval_allowed"] is False
+
+
+def test_tcad_event_keeps_correlation_and_redacts_transport_secrets():
+    row = {
+        "sequence": 21, "event_id": str(uuid4()),
+        "event_type": "tcad.verification.candidate_running", "run_id": str(uuid4()),
+        "payload": {
+            "request_id": str(uuid4()), "job_id": str(uuid4()),
+            "proposal_id": str(uuid4()), "tcad_request_id": str(uuid4()),
+            "candidate_index": 1, "status": "running",
+            "progress": {"stage": "bv", "endpoint_url": "http://private-tcad:9000"},
+            "api_token": "secret-token",
+        },
+    }
+    formatted = format_unity_event(row, unity_mode="prod")
+    assert formatted["payload"]["candidate_index"] == 1
+    assert formatted["payload"]["progress"]["stage"] == "bv"
+    rendered = __import__("json").dumps(formatted)
+    assert "secret-token" not in rendered
+    assert "private-tcad" not in rendered
+    assert formatted["approval_allowed"] is False

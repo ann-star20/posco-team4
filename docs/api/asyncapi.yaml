@@ -604,6 +604,42 @@ components:
             unity_mode: {type: string, enum: [mock, prod]}
             approval_allowed: {type: boolean}
             correction: {type: object}
+    TcadCandidateEventPayload:
+      type: object
+      additionalProperties: true
+      required: [request_id, proposal_id, tcad_request_id, candidate_index, status]
+      properties:
+        request_id: {type: string, format: uuid, description: Unity 원본 진단 요청 ID}
+        job_id: {type: string, format: uuid}
+        proposal_id: {type: string, format: uuid}
+        tcad_request_id: {type: string, format: uuid, description: 외부 TCAD 접수와 조회 키}
+        candidate_index: {type: integer, minimum: 0}
+        status:
+          type: string
+          enum: [queued, running, succeeded, failed, cancelled, expired, review_required]
+        progress: {type: object}
+        result_payload: {type: object}
+        error_code: {type: string}
+        error_message: {type: string}
+      description: TCAD endpoint와 X-Fab-Token은 Unity payload에 포함하지 않는다.
+    TcadBatchEventPayload:
+      type: object
+      additionalProperties: true
+      required: [request_id, proposal_id, status, candidates, succeeded_count]
+      properties:
+        request_id: {type: string, format: uuid}
+        proposal_id: {type: string, format: uuid}
+        status: {type: string, enum: [review_required, failed, cancelled]}
+        candidates:
+          type: array
+          items:
+            type: object
+            required: [tcad_request_id, candidate_index, status]
+            properties:
+              tcad_request_id: {type: string, format: uuid}
+              candidate_index: {type: integer, minimum: 0}
+              status: {type: string}
+        succeeded_count: {type: integer, minimum: 0}
     VectorX:
       type: object
       additionalProperties: false
