@@ -49,6 +49,9 @@ case "$action" in
     export PYTHONPATH="$root/services/event_gateway/src${PYTHONPATH:+:$PYTHONPATH}"
     python_bin="${GATEWAY_PYTHON:-$HOME/posco-gateway-venv/bin/python}"
     [[ -x "$python_bin" ]] || python_bin=python3
+    check_python_imports "$python_bin" fastapi psycopg websockets httpx uvicorn pydantic \
+      || { echo "Gateway Python 의존성 누락: posco-gateway-venv를 확인하세요." >&2; exit 1; }
+    ensure_windows_firewall_rule "ROS2 FastDDS inbound from Jetson" "$peer_ip" "7400-7470"
     start_managed_process gateway-api "$runtime" "$python_bin" -u -m event_gateway.app
     start_managed_process gateway-ros "$runtime" "$python_bin" -u -m event_gateway.ros_adapter
     start_managed_process verification-worker "$runtime" "$python_bin" -u -m event_gateway.verification_worker

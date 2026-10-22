@@ -54,6 +54,8 @@ case "$action" in
     if ! curl -fsS --max-time 3 "${SURROGATE_PROD_URL:-http://127.0.0.1:8300}/health/ready" >/dev/null; then
       echo "경고: ML HTTP 서비스 readiness 확인 실패. 워커 로그를 확인하세요." >&2
     fi
+    check_python_imports "$python_bin" rclpy std_msgs httpx \
+      || { echo "Jetson ROS Worker Python 의존성 누락: vision_env를 확인하세요." >&2; exit 1; }
     start_managed_process surrogate-worker "$runtime" "$python_bin" -u -m fab_virtual_lot.surrogate_worker
     start_managed_process diagnosis-worker "$runtime" "$python_bin" -u -m fab_virtual_lot.diagnosis_worker
     ;;

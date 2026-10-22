@@ -148,6 +148,11 @@ def main() -> None:
             publish_receipt(event_id, run_id, "dead_lettered")
 
     def worker():
+        # Reuse one connection across iterations instead of paying a fresh
+        # TCP/TLS/auth round trip to Aiven per message -- at high republish
+        # rates that per-message connect latency was the actual bottleneck
+        # behind the in-memory queue filling up.
+        connection = None
         while rclpy.ok():
             try:
                 reason, raw = dead_queue.get_nowait()
@@ -164,14 +169,19 @@ def main() -> None:
             except Empty:
                 continue
             try:
-                with psycopg.connect(settings.database_url, autocommit=True) as connection:
-                    repository = EventRepository(connection, settings.ros_command_key)
-                    receipt = store_ros_event(repository, event, run_id, settings)
+                if connection is None or connection.closed:
+                    connection = psycopg.connect(settings.database_url, autocommit=True)
+                repository = EventRepository(connection, settings.ros_command_key)
+                receipt = store_ros_event(repository, event, run_id, settings)
             except (ValueError, EventConflict, ValidationError, psycopg.IntegrityError) as exc:
                 try:
                     record_invalid(type(exc).__name__, raw)
                 except psycopg.Error:
                     logger.exception("dead-letter storage failed; producer will retry")
+                continue
+            except psycopg.Error:
+                logger.exception("event storage failed; reconnecting; producer will retry")
+                connection = None
                 continue
             except Exception:
                 logger.exception("event storage failed; producer will retry")

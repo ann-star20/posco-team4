@@ -1,255 +1,360 @@
 # Virtual Fab 현재 시스템 아키텍처
 
-기준일: 2026-10-20
+기준일: 2026-10-22
 
-이 문서는 AOD4184A 기반 Virtual Fab의 현재 구현과 확정된 목표 연결 구조를 함께 설명한다. 그림에서 `구현`은 현재 저장소에 실행 코드가 있는 경로, `Mock`은 실제 외부 시스템 대신 시험 서버가 있는 경로, `연결 필요`는 계약은 확정됐지만 아직 코드가 완전히 이어지지 않은 경로다.
+기준 저장소: `C:\posco_project`
 
-## 1. 핵심 원칙
+이 문서는 현재 코드, 실행 스크립트, ROS 2 토픽, HTTP/WebSocket 계약, PostgreSQL
+마이그레이션과 실제 배치를 대조한 기준 문서다. 목표 개념도가 아니라 **현재 구현된
+실행 경계와 외부 팀이 제공하는 서비스 경계**를 나타낸다.
 
-- Unity의 AOI 검사 요청과 결과 이미지는 **Jetson AOI WebSocket 서버**로 직접 전달한다.
-- Jetson은 IP 카메라를 한 번만 연결해 짧은 RAM Ring Buffer를 유지하며, Unity에는 저장 없는 저해상도 Preview만 보낸다.
-- Unity의 AOI 요청은 Preview에서 본 `frame_id`를 지정한다. Jetson은 해당 원본 frame을 작업용 PNG로 먼저 고정한 뒤 비동기 추론한다.
-- Gateway는 로컬 PC/WSL에서 실행하며 ROS 2 이벤트 구독, Aiven PostgreSQL 영구 저장, TCAD 요청, 승인 및 보정 명령을 담당한다.
-- Jetson은 단순 ROS 구독자가 아니다. AOI WebSocket 서버인 동시에 ROS 요청 구독자·결과 발행자다.
-- Unity는 목적이 다른 두 연결을 사용한다.
-  - AOI 실시간 경로: `ws://<JETSON_IP>:8400/aoi`
-  - 중앙 이벤트·승인·보정 경로: `ws://<GATEWAY_IP>:8000/api/v1/...`
-- 이미지 원본과 박스가 표시된 JPG는 Jetson에 저장한다. Aiven에는 절대 경로, 파일명, SHA-256, 크기, 해상도와 탐지 결과를 저장한다.
-- ROS 메시지는 at-least-once로 전달될 수 있다. `event_id` 멱등성과 `/fab/event_acks`를 이용해 중복을 안전하게 처리한다.
-- 산화막 두께·바디 도즈 등 공정 보정은 TCAD 검증 후 관리자 승인 없이는 적용하지 않는다.
-- 모든 보정은 가상 공정에만 적용한다. 물리 장비 제어는 범위 밖이다.
+![Virtual Fab 전체 시스템 아키텍처](assets/current-system-architecture.png)
 
-## 2. 전체 시스템 구성
+SVG: [current-system-architecture.svg](assets/current-system-architecture.svg)
+
+Graphviz 원본: [current-system-architecture.dot](assets/current-system-architecture.dot)
+
+## 1. 핵심 결론
+
+- Unity는 실시간 카메라/AOI는 Jetson `:8500`, `:8400`에, TCAD ML 요청·진단·중앙
+  이벤트·승인은 WSL Gateway `:8000`에 연결한다.
+- Jetson의 ROS Worker는 모델이 아니다. Gateway의 ROS 요청을 받아 Jetson 내부 ML
+  HTTP Service `:8300`을 호출하고 결과를 `/fab/events`로 반환하는 어댑터다.
+- ML HTTP Service는 `POST /api/v1/predict`(TCAD Surrogate)와
+  `POST /api/v1/diagnose`(Diagnosis Agent)를 제공한다.
+- Surrogate와 Diagnosis는 별도 작업이다. Diagnosis 결과가 `anomaly_detected=true`,
+  `compensation.route=tcad_verify`이고 후보가 있을 때만 Gateway가 TCAD 큐를 만든다.
+- WSL Gateway 서버 PC와 Windows TCAD 워크스테이션은 **서로 다른 물리 PC**다.
+  Gateway의 Verification Worker가 네트워크 HTTP로 TCAD 워크스테이션의
+  TCAD HTTP Service를 호출한다.
+- TCAD HTTP Service는 시뮬레이터가 아니라 비동기 큐·조회 API와 실행 래퍼다.
+  `subprocess.run()`으로 `dbascii.exe`를 실행하고, `dbascii.exe`가 다시 Silvaco
+  `atlas/atlas2`를 실행한다.
+- Aiven PostgreSQL commit 뒤에만 `/fab/event_acks`의 `committed`가 발행된다.
+- 정책상 모든 보정은 TCAD 검증과 관리자 승인 뒤 가상 공정에만 적용한다. 다만 현재
+  신규 진단 후보 경로는 `review_required`까지 구현됐고, 후보 선택·승인·Unity 명령
+  변환은 아직 기존 승인 경로와 연결되지 않았다.
+
+## 2. 전체 배치 아키텍처
 
 ```mermaid
 flowchart LR
+    CAMERA[IP Camera\nHTTP/HTTPS video]
     subgraph UNITY[Unity PC]
-        U[가상 Fab UI\nPreview 표시 + AOI 요청]
+        U[Virtual Fab UI\nPreview · AOI · ML 요청\n검증 표시 · 관리자 승인]
     end
-
     subgraph JETSON[Jetson Orin Nano]
-        CAM[IP Camera Source\nmock 또는 HTTP(S)]
-        BUF[(RAM Ring Buffer\n최근 2초 / 최대 128 MiB)]
-        PWS[Preview WebSocket\n:8500/camera/preview]
-        JWS[AOI WebSocket 서버\n:8400/aoi]
-        QUEUE[(AOI durable queue\nSQLite + pinned PNG)]
-        AOI[AOI 2단계 추론\n부품 + 결함]
-        IMG[(result/aoi\n원본·annotated JPG)]
-        AOUT[(AOI SQLite outbox)]
-        AWORK[ROS AOI Worker]
-        SWORK[ROS Surrogate Worker]
-        CMD[ROS Command Subscriber]
-        SML[간이 원인분석 ML\nMock 또는 실제 모델]
+        CAP[Camera Capture]
+        RING[(RAM Ring Buffer)]
+        PREVIEW[Preview WebSocket\n:8500/camera/preview]
+        AOIWS[AOI WebSocket\n:8400/aoi]
+        AOIQ[(AOI SQLite Queue\nPinned frame)]
+        AOI[AOI Pipeline\nPart model → Defect model]
+        FILES[(result/aoi\noriginal · annotated · JSON)]
+        OUTBOX[(SQLite Outbox)]
+        SW[Surrogate ROS Worker]
+        DW[Diagnosis ROS Worker]
+        subgraph MLHTTP[TCAD ML HTTP Service :8300]
+            PRED[/POST /api/v1/predict/]
+            DIAG[/POST /api/v1/diagnose/]
+            SM[TCAD Surrogate GP Models\nVth·gm → Id_on / BV]
+            DA[Diagnosis Agent\n원인·보정 후보·route]
+        end
     end
-
-    subgraph GATEWAY[로컬 PC / WSL Gateway]
-        GHTTP[Gateway HTTP API\n:8000]
-        GWS[Gateway WebSocket\ncontrol / stream / commands]
-        ROS[ROS 2 Gateway Bridge]
-        VERIFY[TCAD Verification Worker]
+    subgraph WSL[Gateway 서버 PC / Ubuntu WSL]
+        API[Event Gateway API/WS :8000\ncontrol · stream · commands]
+        ROS[ROS Gateway Bridge\n/fab_gateway_bridge]
+        VW[TCAD Verification Worker\nDB lease · submit · poll]
     end
-
-    subgraph CLOUD[Aiven Cloud]
-        PG[(PostgreSQL)]
+    subgraph WIN[별도 TCAD 워크스테이션 PC / Windows]
+        THTTP[TCAD HTTP Service :8400\n서비스.py · queue/status wrapper]
+        DBA[dbascii.exe\nchild process]
+        ATLAS[Silvaco atlas/atlas2\nTCAD simulation]
     end
+    PG[(Aiven PostgreSQL)]
 
-    subgraph TCAD[TCAD 워크스테이션]
-        THTTP[TCAD HTTP Service]
-        SILVACO[Silvaco TCAD]
-    end
-
-    CAM --> BUF
-    BUF --> PWS
-    PWS -->|최신 frame JSON + JPEG\n저장하지 않음| U
-    U -->|camera_id + frame_id| JWS
-    JWS -->|선택 frame 복사·영속 후 accepted| QUEUE
-    QUEUE --> AOI
+    CAMERA --> CAP --> RING --> PREVIEW -->|JSON metadata + JPEG| U
+    U -->|camera_id + frame_id| AOIWS
+    AOIWS --> AOIQ --> AOI --> FILES
     AOI -->|completed JSON + annotated JPEG| U
-    AOI --> IMG
-    JWS -->|동일 AOI 결과 선저장| AOUT
-    AOUT -->|/fab/events, ACK 전 재전송| ROS
-
-    GHTTP -->|검사/ML 작업 접수| PG
-    ROS -->|/fab/inference_requests| AWORK
-    ROS -->|/fab/surrogate_requests| SWORK
-    AWORK --> AOI
-    SWORK --> SML
-    AWORK -->|/fab/events| ROS
-    SWORK -->|/fab/events| ROS
-    ROS -->|트랜잭션 저장| PG
-    ROS -->|/fab/event_acks| AWORK
-    ROS -->|/fab/event_acks| SWORK
-
-    VERIFY <-->|검증 생성/조회 HTTP| THTTP
-    THTTP -.->|실제 adapter 예정| SILVACO
-    VERIFY <--> PG
-
-    U <-->|중앙 제어/이벤트/보정 WS| GWS
-    GWS <--> PG
-    ROS -->|/fab/commands| CMD
-    CMD -->|correction.applied| ROS
+    AOI --> OUTBOX -->|/fab/events| ROS
+    U <-->|control / stream / commands| API
+    API <--> PG
+    PG <--> ROS
+    ROS -->|/fab/surrogate_requests| SW
+    ROS -->|/fab/diagnosis_requests| DW
+    SW --> PRED --> SM --> PRED --> SW
+    DW --> DIAG --> DA --> DIAG --> DW
+    SW -->|/fab/events| ROS
+    DW -->|/fab/events| ROS
+    ROS -->|/fab/event_acks| OUTBOX
+    ROS -->|/fab/event_acks| SW
+    ROS -->|/fab/event_acks| DW
+    PG <--> VW
+    VW -->|POST /api/v1/tcad/verify| THTTP
+    VW -->|GET /api/v1/tcad/jobs/request_id| THTTP
+    THTTP -->|subprocess.run| DBA --> ATLAS
+    ATLAS --> DBA --> THTTP
 ```
 
-직접 WebSocket 서버는 추론 결과를 Unity에 보내기 전에 SQLite outbox에 저장한다.
-ROS 영속화가 활성화된 경우 동일 event를 `/fab/events`로 재발행하고 Gateway의
-`/fab/event_acks`가 `committed` 또는 `dead_lettered`를 반환할 때까지 보존한다.
+### 물리 배치와 책임
 
-## 3. 컴포넌트 책임과 구현 상태
+| 물리 위치 | 프로세스/모델 | 역할 |
+| --- | --- | --- |
+| Unity PC | Unity Virtual Fab | UI, 요청, 이벤트 표시, 관리자 승인, 가상 보정 반영 |
+| Jetson | Camera/AOI WebSocket | Preview와 지정 frame AOI 검사 |
+| Jetson | Part/Defect AOI 모델 | 완성품 외관 부품·결함 탐지 |
+| Jetson | Surrogate/Diagnosis ROS Worker | ROS와 로컬 ML HTTP 사이 통신·재시도·outbox |
+| Jetson | TCAD ML HTTP Service `:8300` | 실제 Surrogate와 Diagnosis API 제공 |
+| Jetson | TCAD Surrogate 모델 | 공정변수에서 `vth`, `gm`, `id_on`, `bv` 예측 |
+| Jetson | Diagnosis Agent | 측정값에서 원인·보정 후보·TCAD route 산출 |
+| Gateway 서버 PC / WSL | Gateway API·ROS Bridge | 중앙 접수, ROS 배포, Aiven 영속화, Unity replay |
+| Gateway 서버 PC / WSL | Verification Worker | TCAD 후보 lease, 원격 HTTP 제출·조회, 결과 집계 |
+| 별도 TCAD 워크스테이션 / Windows | TCAD HTTP Service `:8400` | 비동기 큐 API, 상태 조회, 로컬 Silvaco 실행 래퍼 |
+| 별도 TCAD 워크스테이션 / Windows | `dbascii.exe` → `atlas/atlas2` | 같은 워크스테이션 안에서 실제 Silvaco 계산 |
+| Aiven Cloud | PostgreSQL | 이벤트·작업·모델 결과·TCAD 큐·승인·명령 영구 저장 |
 
-| 컴포넌트 | 위치 | 책임 | 상태 |
-| --- | --- | --- | --- |
-| Jetson Camera Capture | Jetson | 카메라 단일 연결, 재연결, RAM Ring Buffer 공급 | 구현 |
-| Jetson Preview WebSocket | Jetson | Unity에 최신 frame만 JSON+JPEG로 전송 | 구현 |
-| Jetson AOI WebSocket | Jetson | `frame_id` 검사 접수, durable queue, JSON+annotated JPG 반환 | 구현 |
-| Jetson AOI Worker | Jetson | `/fab/inference_requests` 구독, AOI 추론, `/fab/events` 발행, ACK 처리 | 구현 |
-| AOI 결과 영속 연결 | Jetson | 직접 WebSocket 결과를 SQLite outbox와 `/fab/events`로 연결 | 구현 |
-| Surrogate Worker | Jetson | `/fab/surrogate_requests` 구독, 모델 HTTP 호출, 결과 이벤트 발행 | 구현 |
-| 실제 Surrogate ML | Jetson | GP 계열 모델 예측 | 외부 팀 구현 예정 |
-| Mock Surrogate | Jetson/WSL | 고정된 정상·이상·실패 응답 | Mock 구현 |
-| ROS Gateway Bridge | WSL | 이벤트 저장, DB ACK, 작업·명령 발행 | 구현 |
-| Event Gateway HTTP/WS | WSL | 작업 접수, 이벤트 재생, 승인, Unity 보정 전송 | 구현 |
-| Aiven PostgreSQL | Cloud | 이벤트·작업·검증·승인·명령·이미지 메타데이터 영구 저장 | 적용 |
-| Mock TCAD | WSL | 결정적 검증 응답과 장애 시나리오 | Mock 구현 |
-| TCAD HTTP Service | TCAD 워크스테이션 | Silvaco adapter 경계 | 틀 구현, backend 미연결 |
-| Unity 클라이언트 | Unity PC | AOI 직접 연결과 중앙 Gateway 연결 | 외부 팀 구현 예정 |
+## 3. 모델과 Worker의 관계
 
-## 4. 카메라 Preview와 AOI 직접 검사 데이터 흐름
+### 3.1 AOI
+
+AOI는 완성품 외관 검사다. Unity가 Preview에서 본 `frame_id`를 요청하면 Jetson은
+Ring Buffer의 해당 원본 frame을 고정하고 부품 탐지(`body`, `lead`, `tab`) 뒤 결함
+탐지(`bend`, `crash`, `scratch`)를 수행한다. 원본 JPG, annotated JPG와 JSON은
+Jetson에 저장하고, annotated JPG는 Unity에 직접 전송한다. 중앙 영속화는 SQLite
+outbox → ROS `/fab/events` → Gateway 경로로 수행한다.
+
+### 3.2 TCAD Surrogate
+
+입력은 `body_dose`, `epi_doping`, `oxide_thickness`다. 1단 GP가 `vth`, `gm`을,
+2단 GP가 입력 3개와 예측 `vth`로 `id_on`을, 별도 GP가 `bv`를 예측한다. Surrogate
+Worker는 모델을 로드하지 않고 로컬 `POST 127.0.0.1:8300/api/v1/predict`를 호출한다.
+
+### 3.3 Diagnosis Agent
+
+Diagnosis Agent는 `vth`, `gm`, `id_on`, `bv` 측정값을 받아 원인 범주, 공정변수별
+추정, 다음 측정 권고, 보정 후보와 route를 반환한다. 현재 route는 `no_action`,
+`manual`, `tcad_verify` 세 가지이며 `apply`는 사용하지 않는다. `tcad_verify`일 때만
+`tcad_proposal`이 존재하고 Gateway가 이를 TCAD 큐로 변환한다.
+
+## 4. 전체 액션 플로우
 
 ```mermaid
 sequenceDiagram
+    autonumber
     participant U as Unity
-    participant P as Jetson Preview WS
-    participant J as Jetson AOI WS
-    participant B as RAM Ring Buffer
-    participant Q as AOI SQLite Queue
-    participant M as AOI Models
-    participant F as Jetson result/aoi
-    participant O as Jetson Outbox
+    participant G as WSL Gateway API
+    participant P as Aiven PostgreSQL
     participant R as ROS Gateway Bridge
-    participant D as Aiven PostgreSQL
-
-    P-->>U: camera.preview.frame JSON
-    P-->>U: JPEG binary (최신 frame만)
-    U->>J: aoi.inspection.requested(camera_id, frame_id)
-    J->>B: 지정 frame 복사
-    alt frame 없음 또는 만료
-        J-->>U: aoi.inspection.rejected(stale_frame)
-    else frame 존재
-        J->>Q: 무손실 PNG + job 원자적 저장
-        J-->>U: aoi.inspection.accepted
-    end
-    Q->>M: 부품 모델 → 결함 모델 (worker=1)
-    M-->>J: parts[], defects[], confidence, bbox
-    J->>F: original.jpg, annotated.jpg, result.json
-    J-->>U: aoi.inspection.completed (JSON text)
-    J-->>U: annotated JPEG (binary frame)
-    J-->>O: 동일 결과 이벤트 저장
-    loop DB ACK 전까지
-        O-->>R: /fab/events
-    end
-    R->>D: events + aoi_image_artifacts 트랜잭션 저장
-    D-->>R: commit
-    R-->>O: /fab/event_acks status=committed
-```
-
-Unity가 결과 이미지를 받았다는 사실과 Aiven 저장 완료는 서로 다른 상태다. Unity 표시 성공은 직접 WebSocket 응답으로, 영구 저장 성공은 ROS ACK로 판단한다.
-
-## 5. Gateway 접수형 AOI 흐름
-
-중앙 Gateway에서 작업을 먼저 생성해야 하는 경우에는 다음 경로를 사용한다. 이 흐름은 현재 구현돼 있다.
-
-```mermaid
-sequenceDiagram
-    participant U as Unity/시험 클라이언트
-    participant G as Gateway
-    participant D as Aiven
-    participant R as ROS Bridge
-    participant J as Jetson AOI Worker
-
-    U->>G: POST /api/v1/inspection-jobs
-    G->>D: inference_jobs + inference_dispatches
-    G-->>U: 202 job_id, status=queued
-    R->>D: due dispatch 조회
-    R-->>J: /fab/inference_requests
-    J->>J: inbox 저장 후 추론
-    J-->>R: /fab/events aoi.inspection.completed
-    R->>D: 이벤트·이미지 메타데이터 저장
-    R-->>J: /fab/event_acks committed
-    U->>G: GET /api/v1/jobs/{job_id}
-    G-->>U: completed + result_event_id
-```
-
-이 경로는 직접 AOI 이미지 전송 경로를 대체하지 않는다. 이미지가 필요한 Unity 화면은 Jetson 직접 WebSocket을 사용한다.
-
-## 6. 간이 ML → TCAD → 승인 → 보정 흐름
-
-```mermaid
-sequenceDiagram
-    participant U as Unity
-    participant G as Gateway
-    participant D as Aiven
-    participant J as Jetson Surrogate Worker
-    participant M as Surrogate ML
-    participant T as TCAD HTTP Service
+    participant SW as Jetson Surrogate Worker
+    participant DW as Jetson Diagnosis Worker
+    participant M as ML HTTP :8300
+    participant V as Verification Worker
+    participant H as TCAD HTTP :8400
+    participant S as dbascii → atlas/atlas2
     participant A as 관리자
 
-    U->>G: surrogate.requested 또는 POST /surrogate-jobs
-    G->>D: 작업 저장
-    G-->>J: /fab/surrogate_requests
-    J->>M: POST /api/v1/predict
-    M-->>J: 예측값 + anomaly + 후보 보정값
-    J-->>G: /fab/events surrogate.completed
-    G->>D: ML 원문·결과 저장
-    alt 이상이며 유효한 후보 존재
-        G->>D: verification_jobs 생성
-        G->>T: POST /api/v1/verifications
-        loop 완료 전까지
-            G->>T: GET /api/v1/verifications/{job_id}
+    U->>G: surrogate.requested
+    G->>P: inference_jobs + inference_dispatches (queued)
+    G-->>U: request.accepted(job_id)
+    R->>P: dispatch lease
+    R-->>SW: /fab/surrogate_requests
+    SW->>M: POST /api/v1/predict
+    M-->>SW: vth, gm, id_on, bv + metadata
+    SW-->>R: /fab/events surrogate.completed
+    R->>P: event + surrogate_results + ml_inference_executions
+    P-->>R: COMMIT
+    R-->>SW: /fab/event_acks committed
+    G-->>U: /stream surrogate.completed
+
+    Note over U,G: Diagnosis는 별도 요청이며 Surrogate 성공만으로 자동 실행되지 않음
+    U->>G: diagnosis.requested(measurements)
+    G->>P: inference_jobs + inference_dispatches (queued)
+    G-->>U: request.accepted(job_id)
+    R-->>DW: /fab/diagnosis_requests
+    DW->>M: POST /api/v1/diagnose
+    M-->>DW: 원인·보정·route·tcad_proposal
+    DW-->>R: /fab/events diagnosis.completed
+
+    alt succeeded + anomaly + route=tcad_verify + candidates
+        R->>P: diagnosis + proposal group + candidates + event (한 트랜잭션)
+        P-->>R: COMMIT
+        R-->>DW: /fab/event_acks committed
+        loop 후보별, 동시 실행 제한 적용
+            V->>P: candidate lease
+            V->>H: POST /api/v1/tcad/verify
+            H-->>V: 202 queued
+            H->>S: subprocess.run(dbascii -run deck ...)
+            S-->>H: TCAD result
+            loop terminal 상태까지
+                V->>H: GET /api/v1/tcad/jobs/{tcad_request_id}
+                H-->>V: queued/running/succeeded/failed
+                V->>P: 후보 상태 + audit event
+            end
         end
-        T-->>G: y_verified
-        G->>D: 검증 결과 저장
-        G-->>U: 검증 이벤트 stream
-        A->>G: POST /proposals/{id}/approval
-        G->>D: 승인·명령 저장
-        G-->>U: correction.command WebSocket
-        U-->>G: correction.applied
-        G->>D: 적용 완료 저장
-    else 정상 또는 후보 없음
-        G-->>U: 결과 이벤트 stream
+        V->>P: batch_completed + review_required
+        G-->>U: /stream TCAD 진행·완료·검토 필요 이벤트
+        Note over U,A: 현재 신규 tcad_proposal_groups 흐름은 여기서 정지
+        Note over G,A: 후보 선택·승인·Unity 명령 변환은 후속 연결 필요
+    else route=no_action
+        R->>P: diagnosis_results(normal) + event
+        G-->>U: /stream diagnosis.completed
+    else route=manual 또는 실패/후보 없음
+        R->>P: diagnosis_results(review/failed) + event
+        G-->>U: /stream 수동 검토 이벤트
     end
 ```
 
-간이 ML의 내부 모델 구조는 담당 팀의 책임이다. 통합 계약은 입력 원문, 모델·계약 버전, 측정 조건, 출력값, 이상 판정, TCAD 후보를 원문 그대로 저장하는 데 집중한다.
+### 액션 상태의 정확한 의미
+
+| 상태 | 의미 |
+| --- | --- |
+| `request.accepted` | Gateway가 요청을 DB에 durable admission한 상태 |
+| `surrogate.completed` | Surrogate 모델 호출과 결과 이벤트가 완료된 상태 |
+| `diagnosis.completed` | 진단 모델 호출이 끝난 상태. TCAD 완료 의미가 아님 |
+| `candidate_queued/running` | Windows TCAD 큐 또는 Silvaco 계산 진행 상태 |
+| `batch_completed` | 모든 TCAD 후보가 terminal 상태가 된 상태 |
+| `review_required` | 성공 후보가 있어 관리자 선택·승인을 기다리는 상태 |
+| `correction.applied` | 기존 correction_proposals 경로에서 Unity가 적용했다고 회신한 상태 |
+| ROS ACK `committed` | 해당 Jetson 결과가 Aiven 트랜잭션에 commit된 상태 |
+
+## 5. 데이터 흐름
+
+```mermaid
+flowchart TB
+    subgraph INPUT[입력 데이터]
+        CF[Camera frame]
+        PP[Process parameters\nbody_dose · epi_doping · oxide_thickness]
+        MS[Measurements\nvth · gm · id_on · bv]
+    end
+    subgraph EDGE[Jetson 처리]
+        AOIR[AOI detections + annotated JPEG]
+        SR[Surrogate response\noutputs + sigma + model/timing]
+        DR[Diagnosis response\ndecision + compensation + TCAD candidates]
+        EO[(SQLite queue/outbox)]
+    end
+    subgraph BUS[통신 경계]
+        WSD[Jetson WS\nPreview/AOI binary]
+        ROSJ[ROS 2 JSON\nrequests/events/acks]
+        WSC[Gateway WS\ncontrol/stream/commands]
+        HTTPT[TCAD HTTP\nsubmit/poll]
+    end
+    subgraph DB[Aiven PostgreSQL]
+        JOB[(inference_jobs\ninference_dispatches)]
+        EVT[(events)]
+        MODEL[(surrogate_results\ndiagnosis_results\nml_inference_executions)]
+        AOIDB[(aoi_image_artifacts)]
+        TCADDB[(tcad_proposal_groups\ntcad_verification_candidates)]
+        CMDS[(correction proposals\napprovals · commands)]
+    end
+    subgraph TCADWIN[Windows TCAD 계산]
+        REQ[TCAD request/deck]
+        RES[Verified outputs\nvth · gm · id_on · bv\nmetadata · prediction_error]
+    end
+
+    CF --> AOIR --> EO
+    CF --> WSD
+    AOIR --> WSD
+    PP --> SR --> EO
+    MS --> DR --> EO
+    EO --> ROSJ
+    ROSJ --> EVT
+    ROSJ --> MODEL
+    ROSJ --> AOIDB
+    WSC --> JOB --> ROSJ
+    DR -->|route=tcad_verify| TCADDB
+    TCADDB --> HTTPT --> REQ --> RES --> HTTPT --> TCADDB
+    TCADDB --> EVT --> WSC
+    MODEL --> EVT
+    AOIDB --> EVT
+    CMDS --> WSC
+```
+
+### 데이터 소유권
+
+| 데이터 | 원본 소유 위치 | 중앙 저장 |
+| --- | --- | --- |
+| 실시간 Preview frame | Jetson RAM Ring Buffer | 저장하지 않음 |
+| AOI 원본/annotated 이미지 | Jetson `result/aoi` | Aiven에는 경로·파일명·SHA-256·탐지 메타데이터 |
+| Surrogate 원문 응답 | Jetson ML Service → Gateway | `surrogate_results.response_body` |
+| Diagnosis 원문 응답 | Jetson ML Service → Gateway | `diagnosis_results.response_body` |
+| 모델 실행 메타데이터 | ML 응답 metadata | `ml_inference_executions` |
+| TCAD 후보·요청·진행·결과 | Gateway TCAD queue | `tcad_proposal_groups`, `tcad_verification_candidates` |
+| 불변 통합 이벤트 | 각 producer | `events`, `event_id` 멱등 저장 |
+| 기존 승인·보정 명령·적용 ACK | Gateway/관리자/Unity | `correction_proposals`, `commands`, `events` |
+
+## 6. 통신 계약 지도
+
+| 발신 → 수신 | 방식 | 주소/토픽 | 목적 |
+| --- | --- | --- | --- |
+| Unity → Jetson | WebSocket | `ws://JETSON:8500/camera/preview` | Preview 구독 |
+| Unity ↔ Jetson | WebSocket | `ws://JETSON:8400/aoi` | frame 지정 AOI 요청·결과 이미지 |
+| Unity ↔ Gateway | WebSocket | `ws://GATEWAY:8000/api/v1/control` | AOI/Surrogate/Diagnosis 접수 |
+| Gateway → Unity | WebSocket | `/api/v1/stream?run_id=...&after_sequence=...` | Aiven commit 이벤트 replay |
+| Gateway ↔ Unity | WebSocket | `/api/v1/commands?run_id=...` | 승인된 보정 명령과 적용 ACK |
+| Gateway → Jetson | ROS 2 | `/fab/surrogate_requests` | Surrogate 작업 배포 |
+| Gateway → Jetson | ROS 2 | `/fab/diagnosis_requests` | Diagnosis 작업 배포 |
+| Jetson → Gateway | ROS 2 | `/fab/events` | AOI/ML 결과 이벤트 |
+| Gateway → Jetson | ROS 2 | `/fab/event_acks` | Aiven commit/dead-letter ACK |
+| Surrogate Worker → ML Service | HTTP | `POST 127.0.0.1:8300/api/v1/predict` | 실제 Surrogate 추론 |
+| Diagnosis Worker → ML Service | HTTP | `POST 127.0.0.1:8300/api/v1/diagnose` | 실제 진단 추론 |
+| Verification Worker → TCAD Service | HTTP | `POST :8400/api/v1/tcad/verify` | 후보 비동기 접수 |
+| Verification Worker → TCAD Service | HTTP | `GET :8400/api/v1/tcad/jobs/{request_id}` | 진행·결과 polling |
+| TCAD Service → dbascii | OS subprocess | `dbascii.exe -run ...` | Silvaco job 실행 |
+| dbascii → Atlas | OS child process | `atlas/atlas2` | 실제 TCAD 계산 |
 
 ## 7. 식별자와 동시성
 
-| 필드 | 의미 | 멱등성 범위 |
+| 식별자 | 범위 | 설명 |
 | --- | --- | --- |
-| `run_id` | 하나의 가상 Fab 실행 | 실행 전체 |
-| `request_id` | 클라이언트 요청 | 동일 내용 재시도 |
-| `job_id` | AOI 또는 Surrogate 작업 | 작업 처리 |
-| `event_id` | 불변 이벤트 | DB 중복 저장 방지 |
-| `proposal_id` | 보정 후보 | TCAD·승인 연결 |
-| `command_id` | 승인 후 적용 명령 | Unity/Jetson 중복 적용 방지 |
-| `sequence` | Aiven 저장 순서 | Unity event stream cursor |
-| `attempt` | 같은 작업의 실행 시도 | 결과·파일 경로 구분 |
+| `run_id` | 통합 실행 | 관련 작업과 Unity stream을 묶는 키 |
+| `request_id` | Unity 요청 | 요청 멱등 키. Surrogate와 Diagnosis는 각각 새 ID 사용 |
+| `job_id` | Gateway 작업 | AOI/Surrogate/Diagnosis 작업 ID |
+| `event_id` | 불변 이벤트 | ROS 중복 발행을 DB에서 제거하는 키 |
+| `proposal_id` | 진단 후보 그룹 | 여러 TCAD 후보와 관리자 검토를 묶는 키 |
+| `tcad_request_id` | TCAD 후보 한 건 | TCAD POST/GET 멱등 키 |
+| `command_id` | 승인된 보정 명령 | Unity 중복 적용 방지 키 |
+| `sequence` | Aiven 이벤트 순서 | Unity 재접속 `after_sequence` cursor |
 
-서로 다른 `run_id`, 장비, 공정 단계는 동시에 처리할 수 있다. 같은 `run_id + unit_id + stage_id`에 활성 작업이 이미 있으면 Gateway는 409를 반환한다. 동일 `request_id`와 동일 payload 재요청은 기존 작업을 반환하고, 내용이 달라지면 충돌로 거부한다.
+- AOI와 Surrogate/Diagnosis는 독립 worker이므로 병렬로 처리할 수 있다.
+- Surrogate와 Diagnosis 요청도 독립적으로 동시에 존재할 수 있다.
+- TCAD 후보는 모두 DB에 먼저 적재하지만 외부 동시 실행 수는
+  `TCAD_MAX_CONCURRENT_JOBS`로 제한한다.
+- Unity WebSocket 연결이 끊겨도 작업은 계속되며 Aiven에서 `sequence`로 재생한다.
+- Worker가 재시작돼도 DB lease와 동일 `tcad_request_id`로 이어서 조회한다.
 
-## 8. 전송별 성공 기준
+## 8. 구현 상태와 경계
 
-| 전송 | 성공 기준 | 재시도/보존 |
+| 영역 | 현재 상태 | 주의사항 |
 | --- | --- | --- |
-| Unity → Jetson AOI WS | completed JSON 뒤 JPEG 무결성 확인 | 클라이언트가 같은 ID로 제한적 재시도 |
-| Jetson → Gateway ROS event | `/fab/event_acks`의 `committed` | Jetson SQLite outbox 재발행 |
-| Gateway → Aiven | DB 트랜잭션 commit | Gateway worker 재시도 |
-| Gateway → TCAD HTTP | 요청 ID 일치 및 완료 결과 계약 검증 | verification job 재조회 |
-| Gateway → Unity stream | `sequence` cursor 진전 | 재접속 시 `after_sequence` 재생 |
-| Gateway → Unity command | `correction.applied` 및 `application.ack` | DB lease 기반 재전송 |
-| Gateway → Jetson command | 서명된 명령과 `correction.applied` 이벤트 | DB command lease + Jetson 멱등 저장 |
+| Jetson Camera Preview/AOI WS | 구현 | 실제 Unity 클라이언트는 외부 팀 책임 |
+| AOI 2단계 모델·annotated 이미지 | 구현 | 모델 파일과 Python/CUDA 환경 필요 |
+| AOI 결과 ROS/Aiven 영속화 | 구현 | Unity 수신과 DB commit은 별도 상태 |
+| Gateway control/stream/commands | 구현 | control/commands 토큰 필요 |
+| Surrogate/Diagnosis ROS Worker | 구현 | 로컬 ML HTTP `:8300` 준비 필요 |
+| 실제 Surrogate/Diagnosis ML Service | 외부 팀 제공·연동 | `fab-ml-v1`, service `1.1.0` 기준 |
+| Diagnosis → TCAD durable queue | 구현 | 안전 조건을 모두 만족할 때만 생성 |
+| TCAD Verification Worker | 구현 | prod URL·토큰·동시성 설정 필요 |
+| Windows TCAD HTTP Service | 별도 TCAD PC에서 실행 | 그 워크스테이션의 `dbascii.exe` 직접 실행 |
+| Silvaco Atlas 계산 | 외부 상용 프로그램 | 장시간 실행, 비동기 polling 사용 |
+| 관리자 승인 → Unity 가상 보정 | Gateway 계약 구현 | 실제 운영 전 후보 선택·현 공정값 계약 재검증 |
 
-## 9. 관련 명세
+### 현재 승인 경로의 구조적 차이
 
-- HTTP: [`../api/openapi.yaml`](../api/openapi.yaml)
-- WebSocket 및 ROS 2: [`../api/asyncapi.yaml`](../api/asyncapi.yaml)
-- 사용 안내: [`../api/README.md`](../api/README.md)
+- 기존 `POST /api/v1/proposals/{proposal_id}/approval`은
+  `correction_proposals`에서 `status='verified'`인 기존 제안을 승인한다.
+- 신규 Diagnosis → TCAD 경로는 `tcad_proposal_groups`와
+  `tcad_verification_candidates`를 사용한다.
+- 현재 코드에는 `tcad_proposal_groups.selected_tcad_request_id` 선택, 관리자 승인,
+  선택된 `process_parameters`를 Unity `correction.command`로 변환하는 연결이 없다.
+- 따라서 현재 정확한 신규 경로의 종점은 `tcad.verification.review_required` 이벤트다.
+  기존 `/commands` WebSocket은 구현되어 있지만 신규 TCAD 후보에는 아직 자동 연결되지
+  않는다.
+
+## 9. 관련 기준 문서
+
+- HTTP: [OpenAPI](../api/openapi.yaml)
+- WebSocket·ROS 2: [AsyncAPI](../api/asyncapi.yaml)
+- 기동: [WSL·Jetson 자동 실행](../runbooks/ros-stack-auto-start.md)
+- TCAD 검증: [TCAD 검증 서비스 E2E](../runbooks/tcad-verification-service-e2e.md)
+- ML 계약: [ML 통합 계약](ml-integration-contract.md)

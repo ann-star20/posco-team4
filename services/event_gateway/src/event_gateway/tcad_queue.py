@@ -14,7 +14,6 @@ def admit_tcad_candidates(
     if (
         not settings.tcad_auto_submit_enabled
         or parsed.status != "succeeded"
-        or parsed.anomaly_detected is not True
         or parsed.result_payload.compensation.route != "tcad_verify"
         or parsed.tcad_proposal is None
     ):

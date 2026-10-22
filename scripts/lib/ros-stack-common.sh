@@ -72,7 +72,10 @@ start_managed_process() {
     echo "$name: 이미 실행 중 (PID $(cat "$pid_file"))"
     return 0
   fi
-  nohup "$@" >> "$log_file" 2>&1 &
+  # setsid detaches into a new session/process group so a terminal Ctrl+C
+  # (e.g. while breaking out of `logs`/`tail -f`) cannot deliver SIGINT to
+  # this worker and trigger rclpy's ExternalShutdownException.
+  setsid nohup "$@" >> "$log_file" 2>&1 < /dev/null &
   echo "$!" > "$pid_file"
   echo "$name: 시작됨 (PID $!, 로그 $log_file)"
 }
@@ -103,6 +106,41 @@ show_managed_status() {
     echo "$name: RUNNING (PID $(cat "$pid_file"))"
   else
     echo "$name: STOPPED"
+  fi
+}
+
+check_python_imports() {
+  local python_bin="$1"
+  shift
+  "$python_bin" -c '
+import importlib.util, sys
+missing = [m for m in sys.argv[1:] if importlib.util.find_spec(m) is None]
+if missing:
+    print("누락된 Python 패키지: " + ", ".join(missing), file=sys.stderr)
+    sys.exit(1)
+' "$@"
+}
+
+ensure_windows_firewall_rule() {
+  # WSL에서만 의미가 있다. powershell.exe interop이 없으면 건너뛴다(예: 순수 Linux 호스트).
+  local display_name="$1" remote_ip="$2" port_range="$3" exists
+  command -v powershell.exe >/dev/null 2>&1 || return 0
+  exists="$(powershell.exe -NoProfile -Command \
+    "if (Get-NetFirewallRule -DisplayName '$display_name' -ErrorAction SilentlyContinue) {'yes'} else {'no'}" \
+    2>/dev/null | tr -d '\r')"
+  if [[ "$exists" == "yes" ]]; then
+    echo "방화벽 규칙 '$display_name' 확인됨"
+    return 0
+  fi
+  echo "방화벽 규칙 '$display_name' 없음. 관리자 권한으로 생성 시도(UAC 승인 창이 뜨면 승인하세요)..."
+  if powershell.exe -NoProfile -Command \
+    "Start-Process powershell -Verb RunAs -Wait -ArgumentList '-NoProfile -Command \"New-NetFirewallRule -DisplayName ''$display_name'' -Direction Inbound -Protocol UDP -LocalPort $port_range -RemoteAddress $remote_ip -Action Allow\"'" \
+    2>/dev/null
+  then
+    echo "방화벽 규칙 생성 완료(또는 이미 존재)"
+  else
+    echo "경고: 방화벽 규칙을 자동으로 만들지 못했습니다. 관리자 PowerShell에서 직접 추가하세요:" >&2
+    echo "  New-NetFirewallRule -DisplayName \"$display_name\" -Direction Inbound -Protocol UDP -LocalPort $port_range -RemoteAddress $remote_ip -Action Allow" >&2
   fi
 }
 

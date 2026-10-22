@@ -85,6 +85,20 @@ class SurrogateRuntime:
         job_id,body=row; request=json.loads(body)
         try:
             response=infer(request)
+        except httpx.HTTPStatusError as exc:
+            if 400 <= exc.response.status_code < 500:
+                # Contract-level rejection (bad request/auth/unsupported version): retrying the
+                # same body forever only blocks every later job behind it in this FIFO queue.
+                response={'request_id':request['request_id'],'job_id':request['job_id'],
+                          'model_contract_version':request.get('model_contract_version'),
+                          'result_origin':request.get('surrogate_mode',request.get('diagnosis_mode')),
+                          'status':'failed','anomaly_detected':None,'result_payload':None,
+                          'error_code':'CONTRACT_REJECTED',
+                          'error_message':f'model service rejected request: HTTP {exc.response.status_code}'}
+            else:
+                with self.lock, self.db:
+                    self.db.execute("UPDATE ml_inbox SET status='queued' WHERE job_id=?",(job_id,))
+                raise
         except Exception:
             with self.lock, self.db:
                 self.db.execute("UPDATE ml_inbox SET status='queued' WHERE job_id=?",(job_id,))
@@ -133,7 +147,7 @@ def main():
             self.create_timer(1.,self.tick)
             self.runner=SingleFlightExecutor('surrogate-cpu',self.background_error)
         def background_error(self,exc):
-            self.get_logger().warning('model unavailable or invalid response; durable request retained')
+            self.get_logger().warning(f'model unavailable or invalid response; durable request retained: {exc!r}')
         def receive(self,msg):
             try:runtime.accept(json.loads(msg.data))
             except (ValueError,KeyError,TypeError):self.get_logger().error('invalid ML request')

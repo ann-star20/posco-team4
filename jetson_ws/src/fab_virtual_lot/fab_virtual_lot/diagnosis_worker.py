@@ -50,9 +50,11 @@ def main():
             self.runner = SingleFlightExecutor("diagnosis-cpu", self.background_error)
 
         def background_error(self, _exc):
-            self.get_logger().warning("diagnosis unavailable or invalid response; durable request retained")
+            self.get_logger().warning(
+                f"diagnosis unavailable or invalid response; durable request retained: {_exc!r}")
 
         def receive(self, msg):
+            self.get_logger().warning(f"DEBUG received diagnosis request, {len(msg.data)} bytes")
             try:
                 runtime.accept(json.loads(msg.data))
             except (ValueError, KeyError, TypeError):

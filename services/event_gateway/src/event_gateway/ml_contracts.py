@@ -13,7 +13,7 @@ DiagnosisCategory = Literal[
     "normal", "dose", "epi", "oxide", "dose+epi", "dose+oxide",
     "epi+oxide", "dose+epi+oxide",
 ]
-DiagnosisRoute = Literal["tcad_verify", "no_action", "manual"]
+DiagnosisRoute = Literal["apply", "tcad_verify", "no_action", "manual"]
 ModelStatus = Literal["succeeded", "failed"]
 ErrorCode = Literal[
     "INVALID_INPUT", "UNSUPPORTED_CONTRACT_VERSION", "INFERENCE_FAILED",
@@ -34,7 +34,7 @@ class ModelIdentity(BaseModel):
 class StageMetric(BaseModel):
     model_config = ConfigDict(extra="allow")
     stage: str
-    status: Literal["succeeded", "failed"]
+    status: Literal["succeeded", "failed", "skipped"]
     duration_ms: float
     error_code: str | None = None
 
