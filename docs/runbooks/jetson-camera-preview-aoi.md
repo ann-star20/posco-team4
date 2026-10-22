@@ -107,15 +107,18 @@ ros2 pkg executables fab_virtual_lot
 ```
 
 `websockets.sync`를 찾지 못하면 AOI를 실행하는 `vision_env`에 프로젝트 요구 버전을
-설치한 뒤 확인 명령을 다시 실행한다. `PYTHONNOUSERSITE=1`을 사용하는 실행에서는
-`pip install --user`로 설치한 `~/.local` 패키지가 보이지 않으므로 사용하지 않는다.
+설치한 뒤 확인 명령을 다시 실행한다. 현재 Jetson 배포에서는 NumPy 1.26.4는
+`.python-aoi`, Torch와 Ultralytics는 `~/.local`에 있으므로 `PYTHONNOUSERSITE=1`을
+설정하면 실모델 의존성이 숨겨진다. `.python-aoi`를 `PYTHONPATH` 맨 앞에 두어
+사용자 영역의 NumPy 2.x보다 우선하고, 사용자 패키지 영역은 활성화한다.
 
 ```bash
-export PYTHONNOUSERSITE=1
 /home/jetson/vision_env/bin/python3 -m pip install \
   'numpy==1.26.4' 'websockets>=13,<16'
+unset PYTHONNOUSERSITE
+export PYTHONPATH="$PWD/.python-aoi:$PWD/jetson_ws/src/fab_virtual_lot${PYTHONPATH:+:$PYTHONPATH}"
 /home/jetson/vision_env/bin/python3 -c \
-  'import cv2, numpy, websockets; from websockets.sync.server import serve; print(numpy.__version__, websockets.__version__)'
+  'import cv2, numpy, torch, ultralytics, websockets; from websockets.sync.server import serve; print(numpy.__version__, torch.__version__, ultralytics.__version__, websockets.__version__)'
 ```
 
 Jetson의 OpenCV는 NumPy 1.x ABI로 빌드되어 있으므로 `vision_env`의 NumPy를 2.x로

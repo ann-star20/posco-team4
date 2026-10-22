@@ -97,6 +97,14 @@ TCAD 성공은 계산 완료를 뜻한다. Gateway가 targets를 비교해 합�
 
 ## 6. TCAD HTTP 계약과 mock
 
+진단 모델의 신규 보정 후보는 `POST /api/v1/tcad/verify`로 접수하고
+`GET /api/v1/tcad/jobs/{tcad_request_id}`로 조회한다. 모든 후보는 먼저 Aiven의
+`tcad_verification_candidates`에 저장하며 기본 외부 동시 실행 수는 1이다. 후보별
+`tcad_request_id`는 결정론적이어서 Worker 재시작과 중복 전달에도 같은 작업을
+조회한다. Unity는 TCAD에 직접 접속하지 않고 Gateway의 커밋 이벤트만 재생한다.
+
+아래 `/api/v1/verifications` 계약은 기존 `correction.proposed` 흐름의 호환 경로다.
+
 POST /api/v1/verifications: request_id, proposal_id, run_id, representation, baseline_version,
 x_current, delta_x, x_candidate, y_observed, targets, model_version, deck_template_version.
 응답 202: job_id와 request_id. 동일 ID·동일 내용은 같은 job_id, 다른 내용은 409.

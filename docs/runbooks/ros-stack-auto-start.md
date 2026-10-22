@@ -141,15 +141,17 @@ diagnosis_ready = true
 
 ### 4.2 Jetson 터미널 B — AOI·카메라 서버
 
-AOI는 `/home/jetson/vision_env/bin/python3`로 실행하므로 의존성도 반드시 같은
-가상환경에 설치한다. `PYTHONNOUSERSITE=1`에서는 `pip install --user`로 설치한
-`~/.local` 패키지가 보이지 않는다.
+AOI는 `/home/jetson/vision_env/bin/python3`로 실행한다. 현재 Jetson 배포에서는
+NumPy 1.26.4는 `.python-aoi`, Torch와 Ultralytics는 `~/.local`에 있으므로
+`PYTHONNOUSERSITE=1`을 사용하지 않는다. 대신 `.python-aoi`를 `PYTHONPATH` 맨
+앞에 두어 사용자 영역의 NumPy 2.x보다 우선한다.
 
 ```bash
-export PYTHONNOUSERSITE=1
 /home/jetson/vision_env/bin/python3 -m pip install \
   'numpy==1.26.4' 'websockets>=13,<16'
 
+unset PYTHONNOUSERSITE
+export PYTHONPATH="$PWD/.python-aoi:$PWD/jetson_ws/src/fab_virtual_lot${PYTHONPATH:+:$PYTHONPATH}"
 /home/jetson/vision_env/bin/python3 -c '
 import cv2, numpy, torch, ultralytics, websockets
 from websockets.sync.server import serve
@@ -174,8 +176,8 @@ source .env
 source .env.camera-prod
 set +a
 
-export PYTHONNOUSERSITE=1
-export PYTHONPATH="/home/jetson/vision_env/lib/python3.10/site-packages:$PWD/jetson_ws/src/fab_virtual_lot${PYTHONPATH:+:$PYTHONPATH}"
+unset PYTHONNOUSERSITE
+export PYTHONPATH="$PWD/.python-aoi:$PWD/jetson_ws/src/fab_virtual_lot${PYTHONPATH:+:$PYTHONPATH}"
 
 /home/jetson/vision_env/bin/python3 -u -m fab_virtual_lot.aoi_unity
 ```

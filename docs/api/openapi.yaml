@@ -317,6 +317,58 @@ paths:
                   - $ref: "#/components/schemas/TcadRunning"
                   - $ref: "#/components/schemas/TcadResult"
         "404": {$ref: "#/components/responses/NotFound"}
+  /api/v1/tcad/verify:
+    post:
+      tags: [TCAD]
+      summary: 진단 보정 후보 TCAD 비동기 검증 접수
+      operationId: createTcadCandidateVerification
+      x-implementation-status: implemented
+      servers:
+        - url: http://127.0.0.1:8100
+          description: production-shaped mock TCAD
+        - url: http://{tcadHost}:{tcadPort}
+          description: 실제 TCAD 검증 서비스
+          variables:
+            tcadHost: {default: 127.0.0.1}
+            tcadPort: {default: "8200"}
+      security:
+        - TcadToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/TcadCandidateVerificationRequest"}
+      responses:
+        "202":
+          description: TCAD 서비스 큐 접수
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/TcadCandidateAccepted"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "422": {$ref: "#/components/responses/Unprocessable"}
+        "503": {$ref: "#/components/responses/Unavailable"}
+  /api/v1/tcad/jobs/{request_id}:
+    get:
+      tags: [TCAD]
+      summary: 후보별 TCAD 검증 상태 조회
+      operationId: getTcadCandidateVerification
+      x-implementation-status: implemented
+      security:
+        - TcadToken: []
+      parameters:
+        - name: request_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        "200":
+          description: queued, running, succeeded, failed 또는 cancelled
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/TcadCandidateJobStatus"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "404": {$ref: "#/components/responses/NotFound"}
 
 components:
   securitySchemes:
@@ -328,6 +380,10 @@ components:
       type: apiKey
       in: header
       name: X-Approval-Token
+    TcadToken:
+      type: apiKey
+      in: header
+      name: X-Fab-Token
   parameters:
     JobId:
       name: job_id
@@ -357,6 +413,69 @@ components:
       description: 설정 또는 backend 준비 안 됨
       content: {application/json: {schema: {$ref: "#/components/schemas/Error"}}}
   schemas:
+    TcadProcessParameters:
+      type: object
+      additionalProperties: false
+      required: [body_dose, epi_doping, oxide_thickness]
+      properties:
+        body_dose: {type: number, exclusiveMinimum: 0, description: cm^-2}
+        epi_doping: {type: number, exclusiveMinimum: 0, description: cm^-3}
+        oxide_thickness: {type: number, exclusiveMinimum: 0, description: um}
+    TcadCandidateVerificationRequest:
+      type: object
+      additionalProperties: false
+      required: [request_id, process_parameters, requested_outputs]
+      properties:
+        request_id: {type: string, format: uuid, description: 후보별 tcad_request_id}
+        job_id: {type: string, format: uuid}
+        run_id: {type: string, format: uuid}
+        lot_id: {type: string}
+        process_parameters: {$ref: "#/components/schemas/TcadProcessParameters"}
+        requested_outputs:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items: {type: string, enum: [vth, gm, id_on, bv]}
+        predicted_outputs: {$ref: "#/components/schemas/VectorY"}
+        options:
+          type: object
+          properties:
+            timeout_seconds: {type: integer, minimum: 1, default: 5400}
+    TcadCandidateAccepted:
+      type: object
+      required: [request_id, status, queue_position, estimated_seconds, accepted_at]
+      properties:
+        request_id: {type: string, format: uuid}
+        status: {type: string, const: queued}
+        queue_position: {type: integer, minimum: 0}
+        estimated_seconds: {type: integer, minimum: 0}
+        accepted_at: {type: string, format: date-time}
+    TcadCandidateJobStatus:
+      type: object
+      required: [request_id, status]
+      properties:
+        request_id: {type: string, format: uuid}
+        status: {type: string, enum: [queued, running, succeeded, failed, cancelled]}
+        queue_position: {type: integer, minimum: 0}
+        estimated_seconds: {type: integer, minimum: 0}
+        progress: {type: object}
+        result_payload: {$ref: "#/components/schemas/VectorY"}
+        prediction_error: {type: object}
+        metadata: {type: object}
+        error_code: {type: string}
+        error_message: {type: string}
+        cancelled_at: {type: string, format: date-time}
+    TcadCandidateGatewayState:
+      type: object
+      description: Aiven과 Unity 이벤트에서 사용하는 Gateway 후보 상관관계
+      required: [proposal_id, tcad_request_id, candidate_index, status]
+      properties:
+        proposal_id: {type: string, format: uuid}
+        tcad_request_id: {type: string, format: uuid}
+        candidate_index: {type: integer, minimum: 0}
+        status:
+          type: string
+          enum: [pending, submitting, queued, running, succeeded, failed, cancelled, expired]
     HealthLive:
       type: object
       required: [status]
