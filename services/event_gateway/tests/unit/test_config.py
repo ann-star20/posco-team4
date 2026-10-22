@@ -76,6 +76,7 @@ def test_tcad_queue_settings_parse_and_redact_token(monkeypatch):
     monkeypatch.setenv("TCAD_MAX_CONCURRENT_JOBS", "2")
     monkeypatch.setenv("TCAD_CONNECT_TIMEOUT_SECONDS", "6")
     monkeypatch.setenv("TCAD_REQUEST_TIMEOUT_SECONDS", "31")
+    monkeypatch.setenv("TCAD_LEASE_SECONDS", "62")
     monkeypatch.setenv("TCAD_JOB_DEADLINE_SECONDS", "6001")
     monkeypatch.setenv("TCAD_POLICY_VERSION", "route-v2")
     settings = Settings.load()
@@ -83,6 +84,7 @@ def test_tcad_queue_settings_parse_and_redact_token(monkeypatch):
     assert settings.tcad_max_concurrent_jobs == 2
     assert settings.tcad_connect_timeout_seconds == 6
     assert settings.tcad_request_timeout_seconds == 31
+    assert settings.tcad_lease_seconds == 62
     assert settings.tcad_job_deadline_seconds == 6001
     assert settings.tcad_policy_version == "route-v2"
     assert "tcad-secret" not in repr(settings)
@@ -92,6 +94,7 @@ def test_tcad_queue_settings_parse_and_redact_token(monkeypatch):
     ("TCAD_MAX_CONCURRENT_JOBS", "0"),
     ("TCAD_CONNECT_TIMEOUT_SECONDS", "0"),
     ("TCAD_REQUEST_TIMEOUT_SECONDS", "-1"),
+    ("TCAD_LEASE_SECONDS", "0"),
     ("TCAD_JOB_DEADLINE_SECONDS", "0"),
 ])
 def test_tcad_queue_numeric_settings_must_be_positive(monkeypatch, name, value):
@@ -105,4 +108,19 @@ def test_tcad_auto_submit_requires_explicit_boolean(monkeypatch):
     monkeypatch.setenv("DATABASE_URL", "postgresql://user:secret@localhost/test")
     monkeypatch.setenv("TCAD_AUTO_SUBMIT_ENABLED", "sometimes")
     with pytest.raises(ValueError, match="TCAD_AUTO_SUBMIT_ENABLED"):
+        Settings.load()
+
+
+def test_tcad_poll_interval_must_be_positive(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://user:secret@localhost/test")
+    monkeypatch.setenv("TCAD_POLL_INTERVAL_SECONDS", "0")
+    with pytest.raises(ValueError, match="TCAD_POLL_INTERVAL_SECONDS"):
+        Settings.load()
+
+
+def test_tcad_lease_must_exceed_request_timeout(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://user:secret@localhost/test")
+    monkeypatch.setenv("TCAD_REQUEST_TIMEOUT_SECONDS", "30")
+    monkeypatch.setenv("TCAD_LEASE_SECONDS", "30")
+    with pytest.raises(ValueError, match="TCAD_LEASE_SECONDS"):
         Settings.load()

@@ -40,6 +40,7 @@ class Settings:
     tcad_max_concurrent_jobs: int = 1
     tcad_connect_timeout_seconds: float = 5
     tcad_request_timeout_seconds: float = 30
+    tcad_lease_seconds: float = 60
     tcad_job_deadline_seconds: int = 6000
     tcad_policy_version: str = "route-v1"
     ros_domain_id: str | None = None
@@ -96,11 +97,15 @@ class Settings:
             "TCAD_MAX_CONCURRENT_JOBS": int(get("TCAD_MAX_CONCURRENT_JOBS", "1")),
             "TCAD_CONNECT_TIMEOUT_SECONDS": float(get("TCAD_CONNECT_TIMEOUT_SECONDS", "5")),
             "TCAD_REQUEST_TIMEOUT_SECONDS": float(get("TCAD_REQUEST_TIMEOUT_SECONDS", "30")),
+            "TCAD_LEASE_SECONDS": float(get("TCAD_LEASE_SECONDS", "60")),
             "TCAD_JOB_DEADLINE_SECONDS": int(get("TCAD_JOB_DEADLINE_SECONDS", "6000")),
+            "TCAD_POLL_INTERVAL_SECONDS": float(get("TCAD_POLL_INTERVAL_SECONDS", "5")),
         }
         for name, value in positive_values.items():
             if value <= 0:
                 raise ValueError(f"{name} must be positive")
+        if positive_values["TCAD_LEASE_SECONDS"] <= positive_values["TCAD_REQUEST_TIMEOUT_SECONDS"]:
+            raise ValueError("TCAD_LEASE_SECONDS must exceed TCAD_REQUEST_TIMEOUT_SECONDS")
         if get('SURROGATE_MODE','mock') not in {'mock','prod'}:
             raise ValueError('invalid SURROGATE_MODE')
         if get('DIAGNOSIS_MODE','mock') not in {'mock','prod'}:
@@ -116,12 +121,13 @@ class Settings:
             tcad_prod_url=get("TCAD_PROD_URL"),
             tcad_mock_scenario=get("TCAD_MOCK_SCENARIO", "pass"),
             tcad_http_timeout_seconds=float(get("TCAD_HTTP_TIMEOUT_SECONDS", "10")),
-            tcad_poll_interval_seconds=float(get("TCAD_POLL_INTERVAL_SECONDS", "5")),
+            tcad_poll_interval_seconds=positive_values["TCAD_POLL_INTERVAL_SECONDS"],
             tcad_api_token=get("TCAD_API_TOKEN"),
             tcad_auto_submit_enabled=auto_submit == "true",
             tcad_max_concurrent_jobs=int(positive_values["TCAD_MAX_CONCURRENT_JOBS"]),
             tcad_connect_timeout_seconds=positive_values["TCAD_CONNECT_TIMEOUT_SECONDS"],
             tcad_request_timeout_seconds=positive_values["TCAD_REQUEST_TIMEOUT_SECONDS"],
+            tcad_lease_seconds=positive_values["TCAD_LEASE_SECONDS"],
             tcad_job_deadline_seconds=int(positive_values["TCAD_JOB_DEADLINE_SECONDS"]),
             tcad_policy_version=get("TCAD_POLICY_VERSION", "route-v1"),
             ros_domain_id=get("ROS_DOMAIN_ID") or None,

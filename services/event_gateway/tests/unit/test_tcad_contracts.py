@@ -1,4 +1,4 @@
-from math import nan
+from math import inf, nan
 from uuid import uuid4
 
 import pytest
@@ -66,9 +66,9 @@ def test_acceptance_and_job_status_allow_only_external_states():
     payloads = {
         "queued": {},
         "running": {},
-        "succeeded": {"result_payload": {"vth": 2.1}},
+        "succeeded": {"result_payload": {"vth": 2.1, "gm": 10, "id_on": 20, "bv": 40}},
         "failed": {"error_code": "FAILED", "error_message": "failed"},
-        "cancelled": {},
+        "cancelled": {"cancelled_at": "2026-10-21T12:01:00Z"},
     }
     for status, payload in payloads.items():
         assert TcadJobStatus.model_validate({
@@ -81,6 +81,25 @@ def test_acceptance_and_job_status_allow_only_external_states():
 def test_succeeded_job_requires_result_payload():
     with pytest.raises(ValidationError):
         TcadJobStatus.model_validate({"request_id": uuid4(), "status": "succeeded"})
+
+
+@pytest.mark.parametrize("result_payload", [
+    {},
+    {"vth": 2.1},
+    {"vth": 2.1, "gm": 10, "id_on": 20, "bv": nan},
+    {"vth": 2.1, "gm": 10, "id_on": inf, "bv": 40},
+])
+def test_succeeded_job_requires_complete_finite_result_vector(result_payload):
+    with pytest.raises(ValidationError):
+        TcadJobStatus.model_validate({
+            "request_id": uuid4(), "status": "succeeded",
+            "result_payload": result_payload,
+        })
+
+
+def test_cancelled_job_requires_cancelled_at():
+    with pytest.raises(ValidationError):
+        TcadJobStatus.model_validate({"request_id": uuid4(), "status": "cancelled"})
 
 
 def test_failed_job_requires_error_fields_and_null_result():

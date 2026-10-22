@@ -83,7 +83,7 @@ class TcadJobStatus(BaseModel):
     queue_position: int | None = Field(default=None, ge=0)
     estimated_seconds: int | None = Field(default=None, ge=0)
     progress: dict[str, Any] | None = None
-    result_payload: dict[str, Any] | None = None
+    result_payload: PredictedOutputs | None = None
     metadata: dict[str, Any] | None = None
     prediction_error: dict[str, Any] | None = None
     error_code: str | None = None
@@ -99,6 +99,8 @@ class TcadJobStatus(BaseModel):
                 raise ValueError("failed status requires error fields")
             if self.result_payload is not None:
                 raise ValueError("failed status requires null result_payload")
+        if self.status == "cancelled" and self.cancelled_at is None:
+            raise ValueError("cancelled status requires cancelled_at")
         return self
 
 

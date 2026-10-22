@@ -607,7 +607,7 @@ components:
     TcadCandidateEventPayload:
       type: object
       additionalProperties: true
-      required: [request_id, proposal_id, tcad_request_id, candidate_index, status]
+      required: [request_id, job_id, proposal_id, tcad_request_id, candidate_index, status]
       properties:
         request_id: {type: string, format: uuid, description: Unity 원본 진단 요청 ID}
         job_id: {type: string, format: uuid}
@@ -625,9 +625,10 @@ components:
     TcadBatchEventPayload:
       type: object
       additionalProperties: true
-      required: [request_id, proposal_id, status, candidates, succeeded_count]
+      required: [request_id, job_id, proposal_id, status, candidates, succeeded_count]
       properties:
         request_id: {type: string, format: uuid}
+        job_id: {type: string, format: uuid}
         proposal_id: {type: string, format: uuid}
         status: {type: string, enum: [review_required, failed, cancelled]}
         candidates:

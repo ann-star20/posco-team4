@@ -1,9 +1,11 @@
 from copy import deepcopy
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
 import httpx
+import psycopg
 
 from event_gateway.config import Settings
 from event_gateway.contracts import EventCreate
@@ -86,6 +88,25 @@ class StatefulTransport:
         })
 
 
+class LeaseStealingTransport(StatefulTransport):
+    def __init__(self, connection):
+        super().__init__()
+        self.connection = connection
+
+    def __call__(self, request):
+        response = super().__call__(request)
+        request_id = (
+            __import__("json").loads(request.content)["request_id"]
+            if request.method == "POST" else request.url.path.rsplit("/", 1)[-1]
+        )
+        self.connection.execute(
+            "UPDATE tcad_verification_candidates SET lease_token=%s,"
+            "lease_until=now()+interval '1 minute' WHERE tcad_request_id=%s",
+            (uuid4(), request_id),
+        )
+        return response
+
+
 def make_worker(connection, settings, transport):
     return TcadCandidateWorker(
         connection, settings,
@@ -154,3 +175,154 @@ def test_worker_expires_candidate_past_deadline_without_http(test_connection):
         "SELECT count(*) FROM tcad_verification_candidates WHERE status='expired'"
     ).fetchone() == (2,)
     assert transport.requests == []
+
+
+def test_worker_reclaims_expired_submitting_lease_with_same_post(test_connection):
+    settings = admit_two(test_connection)
+    request_id = test_connection.execute(
+        "SELECT tcad_request_id FROM tcad_verification_candidates ORDER BY candidate_index LIMIT 1"
+    ).fetchone()[0]
+    test_connection.execute(
+        "UPDATE tcad_verification_candidates SET status='submitting',lease_token=%s,"
+        "lease_until=now()-interval '1 second' WHERE tcad_request_id=%s",
+        (uuid4(), request_id),
+    )
+    transport = StatefulTransport()
+    worker = make_worker(test_connection, settings, transport)
+
+    assert worker.run_once() == 1
+    assert transport.requests == [("POST", "/api/v1/tcad/verify")]
+    assert test_connection.execute(
+        "SELECT status FROM tcad_verification_candidates WHERE tcad_request_id=%s",
+        (request_id,),
+    ).fetchone() == ("queued",)
+
+
+def test_expiry_emits_correlated_events_once(test_connection):
+    settings = admit_two(test_connection)
+    test_connection.execute(
+        "UPDATE tcad_verification_candidates SET deadline_at=now()-interval '1 second'"
+    )
+    worker = make_worker(test_connection, settings, StatefulTransport())
+
+    assert worker.run_once() == 1
+    assert worker.run_once() == 0
+    rows = test_connection.execute(
+        "SELECT event_type,payload FROM events WHERE event_type LIKE 'tcad.verification.%' "
+        "ORDER BY sequence"
+    ).fetchall()
+    assert [row[0] for row in rows].count("tcad.verification.candidate_expired") == 2
+    assert [row[0] for row in rows].count("tcad.verification.batch_completed") == 1
+    for _, payload in rows:
+        assert payload["job_id"]
+
+
+def test_lost_lease_does_not_emit_or_commit_acceptance(test_connection):
+    settings = admit_two(test_connection)
+    worker = make_worker(test_connection, settings, LeaseStealingTransport(test_connection))
+
+    assert worker.run_once() == 1
+    assert test_connection.execute(
+        "SELECT count(*) FROM events WHERE event_type='tcad.verification.candidate_queued'"
+    ).fetchone() == (0,)
+    assert test_connection.execute(
+        "SELECT status FROM tcad_verification_candidates ORDER BY candidate_index LIMIT 1"
+    ).fetchone() == ("submitting",)
+
+
+def test_lost_lease_does_not_emit_or_commit_poll_transition(test_connection):
+    settings = admit_two(test_connection)
+    normal = make_worker(test_connection, settings, StatefulTransport())
+    assert normal.run_once() == 1
+    stale = make_worker(test_connection, settings, LeaseStealingTransport(test_connection))
+
+    assert stale.run_once() == 1
+    assert test_connection.execute(
+        "SELECT count(*) FROM events WHERE event_type='tcad.verification.candidate_running'"
+    ).fetchone() == (0,)
+    assert test_connection.execute(
+        "SELECT status FROM tcad_verification_candidates ORDER BY candidate_index LIMIT 1"
+    ).fetchone() == ("queued",)
+
+
+def test_batch_terminal_events_are_emitted_once(test_connection):
+    settings = admit_two(test_connection)
+    worker = make_worker(test_connection, settings, StatefulTransport())
+    for _ in range(6):
+        worker.run_once()
+    proposal_id, run_id, request_id = test_connection.execute(
+        "SELECT proposal_id,run_id,original_request_id FROM tcad_proposal_groups"
+    ).fetchone()
+
+    with test_connection.transaction():
+        worker._aggregate_group(proposal_id, run_id, request_id)
+    assert test_connection.execute(
+        "SELECT count(*) FROM events WHERE event_type='tcad.verification.batch_completed'"
+    ).fetchone() == (1,)
+    assert test_connection.execute(
+        "SELECT count(*) FROM events WHERE event_type='tcad.verification.review_required'"
+    ).fetchone() == (1,)
+
+
+def test_worker_recovers_409_by_polling_same_request(test_connection):
+    settings = admit_two(test_connection)
+    transport = StatefulTransport(submit_status=409)
+    worker = make_worker(test_connection, settings, transport)
+
+    assert worker.run_once() == 1
+    transport.submit_status = 202
+    assert worker.run_once() == 1
+    assert [method for method, _ in transport.requests] == ["POST", "GET"]
+
+
+def test_worker_retries_429_but_fails_400(test_connection):
+    settings = admit_two(test_connection)
+    retry_worker = make_worker(test_connection, settings, StatefulTransport(submit_status=429))
+    assert retry_worker.run_once() == 1
+    assert test_connection.execute(
+        "SELECT status,last_error_code FROM tcad_verification_candidates "
+        "ORDER BY candidate_index LIMIT 1"
+    ).fetchone() == ("pending", "http_429")
+
+    test_connection.execute(
+        "UPDATE tcad_verification_candidates SET next_attempt_at=now() WHERE candidate_index=0"
+    )
+    fail_worker = make_worker(test_connection, settings, StatefulTransport(submit_status=400))
+    assert fail_worker.run_once() == 1
+    assert test_connection.execute(
+        "SELECT status,last_error_code FROM tcad_verification_candidates "
+        "ORDER BY candidate_index LIMIT 1"
+    ).fetchone() == ("failed", "http_400")
+
+
+def test_two_worker_connections_enforce_global_concurrency_limit(test_connection):
+    settings = admit_two(test_connection)
+    schema = test_connection.execute("SELECT current_schema()").fetchone()[0]
+    test_connection.execute("""
+        CREATE FUNCTION slow_tcad_claim() RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN
+          PERFORM pg_sleep(0.5);
+          RETURN NEW;
+        END $$
+    """)
+    test_connection.execute("""
+        CREATE TRIGGER slow_tcad_claim_trigger
+        BEFORE UPDATE OF status ON tcad_verification_candidates
+        FOR EACH ROW WHEN (OLD.status='pending' AND NEW.status='submitting')
+        EXECUTE FUNCTION slow_tcad_claim()
+    """)
+
+    database_url = Settings.load(ROOT / ".env").test_database_url
+    def claim_once():
+        with psycopg.connect(
+            database_url, autocommit=True, options=f"-c search_path={schema}"
+        ) as connection:
+            return TcadCandidateWorker(connection, settings)._claim()
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        claims = list(executor.map(lambda _: claim_once(), range(2)))
+
+    assert sum(claim is not None for claim in claims) == 1
+    assert test_connection.execute(
+        "SELECT count(*) FROM tcad_verification_candidates WHERE status='submitting'"
+    ).fetchone() == (1,)
