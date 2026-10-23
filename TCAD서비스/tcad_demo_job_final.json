@@ -1,0 +1,39 @@
+{
+ "request_id": "demo-tcadverify-0001",
+ "job_id": "13473eb7-77ca-4b5a-986e-d61d852b00c1",
+ "status": "succeeded",
+ "result_payload": {
+  "vth": 2.2298657718120802,
+  "gm": 4.469999999999995,
+  "id_on": 5.1499999999999995,
+  "bv": 41.808358194384404
+ },
+ "metadata": {
+  "units": {
+   "vth": "V",
+   "gm": "uS/um",
+   "id_on": "uA/um",
+   "bv": "V"
+  },
+  "id_conditions": {
+   "vgs_v": 4.0,
+   "vds_v": 0.1,
+   "temperature_c": 26.85
+  },
+  "bv_criterion": "1e-9 A/um",
+  "leakage_a_per_um": 5.176e-16,
+  "seconds_iv": 301.8,
+  "seconds_bv": 930.8,
+  "attempts": 1,
+  "mesh_factor": 1.0,
+  "sweep_v": 4.0,
+  "warnings": []
+ },
+ "finished_at": "2026-10-22T15:38:19+09:00",
+ "prediction_error": {
+  "vth": -0.000626,
+  "gm": -0.014289,
+  "id_on": -0.000201,
+  "bv": -0.001499
+ }
+}

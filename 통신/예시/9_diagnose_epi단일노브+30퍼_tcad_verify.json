@@ -1,0 +1,19 @@
+{
+ "비고": "최종ML/데이터/학습데이터_최종.csv 의 S_epi_1.3 (에피 단일 노브 +30%) 을 Jetson 실기에 그대로 요청해서 받은 응답. 에피는 레시피로 제어할 수 없다는 핵심 제약을 보여주는 샘플. 2026-10-22.",
+ "요청": {
+  "schema_version": 1, "task_type": "diagnose", "request_id": "demo-epi13",
+  "model_contract_version": "fab-ml-v1",
+  "input_payload": {"measurements": {"vth": 2.1841666666666666, "gm": 4.799999999999996, "id_on": 5.754, "bv": 35.961215303953836}, "n_wafers": 25, "refine": false}
+ },
+ "응답_HTTP": 200,
+ "응답_핵심": {
+  "anomaly_detected": true,
+  "decision": {"decided": true, "top_category": "epi", "top_category_label": "에피", "top_probability": 0.9429336804157247},
+  "compensation": {
+   "route": "tcad_verify", "high_confidence": false,
+   "confidence_blockers": ["EPI_DEVIATED_NOT_CONTROLLABLE", "SPEC_NOT_ASSURED_AFTER"],
+   "epi_doping": "not_controllable",
+   "warning": "에피가 벗어났을 가능성이 높다: 에피는 제어할 수 없어 BV 는 보정되지 않는다"
+  }
+ }
+}

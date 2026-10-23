@@ -1,0 +1,182 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 2060 960" role="img" font-family='"Recursive Variable","Malgun Gothic","Apple SD Gothic Neo",arial,sans-serif' style="background:#ffffff">
+<title>TCAD 검증 경로 데이터 모델</title><desc>모델 서비스 응답이 Gateway 테이블에 저장되고 tcad_verify일 때 TCAD 서비스 작업으로 이어지는 관계</desc>
+<text x="40" y="40" font-size="22" font-weight="700" fill="#28253D">TCAD 검증 경로 데이터 모델</text>
+<text x="40" y="64" font-size="13" fill="#6B6880">모델 서비스 응답 → Gateway 저장 → (route=tcad_verify) TCAD 서비스 작업 → 규격 판정과 승인</text>
+<path d="M400,300.1 L490.0,300.1 L490.0,186.8 L580,186.8" fill="none" stroke="#28253D" stroke-width="2"/><line x1="412" y1="292.1" x2="412" y2="308.1" stroke="#28253D" stroke-width="2"/><line x1="418" y1="292.1" x2="418" y2="308.1" stroke="#28253D" stroke-width="2"/><line x1="568" y1="194.8" x2="568" y2="178.8" stroke="#28253D" stroke-width="2"/><line x1="562" y1="194.8" x2="562" y2="178.8" stroke="#28253D" stroke-width="2"/><rect x="454.1" y="231.45000000000002" width="71.80000000000001" height="22" rx="4" fill="#ffffff" opacity="0.92"/><text x="490.0" y="247.45000000000002" text-anchor="middle" font-size="12" fill="#28253D">이벤트로 저장</text>
+<path d="M688.0,332 L688.0,366.0 L688.0,366.0 L688.0,400" fill="none" stroke="#28253D" stroke-width="2"/><line x1="696.0" y1="344" x2="680.0" y2="344" stroke="#28253D" stroke-width="2"/><line x1="696.0" y1="350" x2="680.0" y2="350" stroke="#28253D" stroke-width="2"/><line x1="680.0" y1="388" x2="696.0" y2="388" stroke="#28253D" stroke-width="2"/><circle cx="688.0" cy="374" r="6" fill="#ffffff" stroke="#28253D" stroke-width="2"/><rect x="727.7" y="338.0" width="160.6" height="22" rx="4" fill="#ffffff" opacity="0.92"/><text x="808.0" y="354.0" text-anchor="middle" font-size="12" fill="#28253D">tcad_verify 일 때만 생성</text>
+<path d="M940,530.4 L1030.0,530.4 L1030.0,508.0 L1120,508.0" fill="none" stroke="#28253D" stroke-width="2"/><line x1="952" y1="522.4" x2="952" y2="538.4" stroke="#28253D" stroke-width="2"/><line x1="958" y1="522.4" x2="958" y2="538.4" stroke="#28253D" stroke-width="2"/><line x1="1102" y1="508.0" x2="1120" y2="517.0" stroke="#28253D" stroke-width="2"/><line x1="1102" y1="508.0" x2="1120" y2="508.0" stroke="#28253D" stroke-width="2"/><line x1="1102" y1="508.0" x2="1120" y2="499.0" stroke="#28253D" stroke-width="2"/><line x1="1096" y1="508.0" x2="1096" y2="508.0" stroke="#28253D"/><rect x="990.4" y="507.20000000000005" width="79.2" height="22" rx="4" fill="#ffffff" opacity="0.92"/><text x="1030.0" y="523.2" text-anchor="middle" font-size="12" fill="#28253D">후보 보통 2개</text>
+<path d="M1480,508.0 L1570.0,508.0 L1570.0,586.4 L1660,586.4" fill="none" stroke="#28253D" stroke-width="2" stroke-dasharray="8 5"/><line x1="1492" y1="500.0" x2="1492" y2="516.0" stroke="#28253D" stroke-width="2"/><line x1="1498" y1="500.0" x2="1498" y2="516.0" stroke="#28253D" stroke-width="2"/><line x1="1648" y1="594.4" x2="1648" y2="578.4" stroke="#28253D" stroke-width="2"/><line x1="1642" y1="594.4" x2="1642" y2="578.4" stroke="#28253D" stroke-width="2"/><rect x="1519.3" y="535.2" width="101.4" height="22" rx="4" fill="#ffffff" opacity="0.92"/><text x="1570.0" y="551.2" text-anchor="middle" font-size="12" fill="#28253D">HTTP verify</text>
+<g><rect x="40" y="90" width="360" height="382" rx="10" fill="#ffffff" stroke="#E879F9" stroke-width="2"/>
+<path d="M40,136 L40,100 Q40,90 50,90 L390,90 Q400,90 400,100 L400,136 Z" fill="#FDF4FF" stroke="#E879F9" stroke-width="2"/>
+<text x="220.0" y="111" text-anchor="middle" font-weight="700" font-size="15" fill="#28253D">diagnose 응답</text>
+<text x="220.0" y="128" text-anchor="middle" font-size="11" fill="#6B6880">모델 서비스 (JSON, 저장 안 함)</text>
+<text x="52" y="154.0" font-size="12" fill="#6B6880">uuid</text>
+<text x="136" y="154.0" font-size="13" font-weight="400" fill="#28253D">request_id</text>
+<rect x="41" y="164" width="358" height="28" fill="#FDF4FF" opacity="0.55"/>
+<text x="52" y="182.0" font-size="12" fill="#6B6880">uuid</text>
+<text x="136" y="182.0" font-size="13" font-weight="400" fill="#28253D">job_id</text>
+<text x="52" y="210.0" font-size="12" fill="#6B6880">text</text>
+<text x="136" y="210.0" font-size="13" font-weight="400" fill="#28253D">status</text>
+<rect x="41" y="220" width="358" height="28" fill="#FDF4FF" opacity="0.55"/>
+<text x="52" y="238.0" font-size="12" fill="#6B6880">boolean</text>
+<text x="136" y="238.0" font-size="13" font-weight="400" fill="#28253D">anomaly_detected</text>
+<text x="52" y="266.0" font-size="12" fill="#6B6880">text</text>
+<text x="136" y="266.0" font-size="13" font-weight="400" fill="#28253D">decision.top_category</text>
+<rect x="41" y="276" width="358" height="28" fill="#FDF4FF" opacity="0.55"/>
+<text x="52" y="294.0" font-size="12" fill="#6B6880">float</text>
+<text x="136" y="294.0" font-size="13" font-weight="400" fill="#28253D">decision.top_probability</text>
+<text x="52" y="322.0" font-size="12" fill="#6B6880">text</text>
+<text x="136" y="322.0" font-size="13" font-weight="400" fill="#28253D">compensation.route</text>
+<rect x="41" y="332" width="358" height="28" fill="#FDF4FF" opacity="0.55"/>
+<text x="52" y="350.0" font-size="12" fill="#6B6880">boolean</text>
+<text x="136" y="350.0" font-size="13" font-weight="400" fill="#28253D">compensation.high_confidence</text>
+<text x="52" y="378.0" font-size="12" fill="#6B6880">jsonb</text>
+<text x="136" y="378.0" font-size="13" font-weight="400" fill="#28253D">compensation.confidence_blockers</text>
+<rect x="41" y="388" width="358" height="28" fill="#FDF4FF" opacity="0.55"/>
+<text x="52" y="406.0" font-size="12" fill="#6B6880">jsonb</text>
+<text x="136" y="406.0" font-size="13" font-weight="400" fill="#28253D">compensation.thresholds</text>
+<text x="52" y="434.0" font-size="12" fill="#6B6880">jsonb</text>
+<text x="136" y="434.0" font-size="13" font-weight="400" fill="#28253D">compensation.target_process_parameters</text>
+<rect x="41" y="444" width="358" height="28" fill="#FDF4FF" opacity="0.55"/>
+<text x="52" y="462.0" font-size="12" fill="#6B6880">jsonb</text>
+<text x="136" y="462.0" font-size="13" font-weight="400" fill="#28253D">tcad_proposal</text>
+</g>
+<g><rect x="580" y="90" width="360" height="242" rx="10" fill="#ffffff" stroke="#A78BFA" stroke-width="2"/>
+<path d="M580,136 L580,100 Q580,90 590,90 L930,90 Q940,90 940,100 L940,136 Z" fill="#F5F3FF" stroke="#A78BFA" stroke-width="2"/>
+<text x="760.0" y="111" text-anchor="middle" font-weight="700" font-size="15" fill="#28253D">diagnosis_results</text>
+<text x="760.0" y="128" text-anchor="middle" font-size="11" fill="#6B6880">Gateway DB</text>
+<text x="592" y="154.0" font-size="12" fill="#6B6880">uuid</text>
+<text x="676" y="154.0" font-size="13" font-weight="600" fill="#28253D">job_id</text>
+<text x="928" y="154.0" text-anchor="end" font-size="11" font-weight="700" fill="#A78BFA">PK</text>
+<rect x="581" y="164" width="358" height="28" fill="#F5F3FF" opacity="0.55"/>
+<text x="592" y="182.0" font-size="12" fill="#6B6880">uuid</text>
+<text x="676" y="182.0" font-size="13" font-weight="400" fill="#28253D">source_event_id</text>
+<text x="928" y="182.0" text-anchor="end" font-size="11" font-weight="700" fill="#A78BFA">FK</text>
+<text x="592" y="210.0" font-size="12" fill="#6B6880">text</text>
+<text x="676" y="210.0" font-size="13" font-weight="400" fill="#28253D">top_category</text>
+<rect x="581" y="220" width="358" height="28" fill="#F5F3FF" opacity="0.55"/>
+<text x="592" y="238.0" font-size="12" fill="#6B6880">text</text>
+<text x="676" y="238.0" font-size="13" font-weight="400" fill="#28253D">compensation_route</text>
+<text x="592" y="266.0" font-size="12" fill="#6B6880">text</text>
+<text x="676" y="266.0" font-size="13" font-weight="400" fill="#28253D">routing_status</text>
+<rect x="581" y="276" width="358" height="28" fill="#F5F3FF" opacity="0.55"/>
+<text x="592" y="294.0" font-size="12" fill="#6B6880">uuid</text>
+<text x="676" y="294.0" font-size="13" font-weight="400" fill="#28253D">proposal_id</text>
+<text x="928" y="294.0" text-anchor="end" font-size="11" font-weight="700" fill="#A78BFA">FK</text>
+<text x="592" y="322.0" font-size="12" fill="#6B6880">uuid</text>
+<text x="676" y="322.0" font-size="13" font-weight="400" fill="#28253D">tcad_proposal_group_id</text>
+<text x="928" y="322.0" text-anchor="end" font-size="11" font-weight="700" fill="#A78BFA">FK</text>
+</g>
+<g><rect x="580" y="400" width="360" height="326" rx="10" fill="#ffffff" stroke="#A78BFA" stroke-width="2"/>
+<path d="M580,446 L580,410 Q580,400 590,400 L930,400 Q940,400 940,410 L940,446 Z" fill="#F5F3FF" stroke="#A78BFA" stroke-width="2"/>
+<text x="760.0" y="421" text-anchor="middle" font-weight="700" font-size="15" fill="#28253D">tcad_proposal_groups</text>
+<text x="760.0" y="438" text-anchor="middle" font-size="11" fill="#6B6880">Gateway DB</text>
+<text x="592" y="464.0" font-size="12" fill="#6B6880">uuid</text>
+<text x="676" y="464.0" font-size="13" font-weight="600" fill="#28253D">proposal_id</text>
+<text x="928" y="464.0" text-anchor="end" font-size="11" font-weight="700" fill="#A78BFA">PK</text>
+<rect x="581" y="474" width="358" height="28" fill="#F5F3FF" opacity="0.55"/>
+<text x="592" y="492.0" font-size="12" fill="#6B6880">uuid</text>
+<text x="676" y="492.0" font-size="13" font-weight="400" fill="#28253D">diagnosis_job_id</text>
+<text x="928" y="492.0" text-anchor="end" font-size="11" font-weight="700" fill="#A78BFA">FK</text>
+<text x="592" y="520.0" font-size="12" fill="#6B6880">uuid</text>
+<text x="676" y="520.0" font-size="13" font-weight="400" fill="#28253D">run_id</text>
+<text x="928" y="520.0" text-anchor="end" font-size="11" font-weight="700" fill="#A78BFA">FK</text>
+<rect x="581" y="530" width="358" height="28" fill="#F5F3FF" opacity="0.55"/>
+<text x="592" y="548.0" font-size="12" fill="#6B6880">uuid</text>
+<text x="676" y="548.0" font-size="13" font-weight="400" fill="#28253D">original_request_id</text>
+<text x="592" y="576.0" font-size="12" fill="#6B6880">jsonb</text>
+<text x="676" y="576.0" font-size="13" font-weight="400" fill="#28253D">routing_snapshot</text>
+<rect x="581" y="586" width="358" height="28" fill="#F5F3FF" opacity="0.55"/>
+<text x="592" y="604.0" font-size="12" fill="#6B6880">int</text>
+<text x="676" y="604.0" font-size="13" font-weight="400" fill="#28253D">candidate_count</text>
+<text x="592" y="632.0" font-size="12" fill="#6B6880">int</text>
+<text x="676" y="632.0" font-size="13" font-weight="400" fill="#28253D">terminal_count</text>
+<rect x="581" y="642" width="358" height="28" fill="#F5F3FF" opacity="0.55"/>
+<text x="592" y="660.0" font-size="12" fill="#6B6880">text</text>
+<text x="676" y="660.0" font-size="13" font-weight="400" fill="#28253D">status</text>
+<text x="592" y="688.0" font-size="12" fill="#6B6880">uuid</text>
+<text x="676" y="688.0" font-size="13" font-weight="400" fill="#28253D">selected_tcad_request_id</text>
+<rect x="581" y="698" width="358" height="28" fill="#F5F3FF" opacity="0.55"/>
+<text x="592" y="716.0" font-size="12" fill="#6B6880">text</text>
+<text x="676" y="716.0" font-size="13" font-weight="400" fill="#28253D">approved_by</text>
+</g>
+<g><rect x="1120" y="400" width="360" height="270" rx="10" fill="#ffffff" stroke="#A78BFA" stroke-width="2"/>
+<path d="M1120,446 L1120,410 Q1120,400 1130,400 L1470,400 Q1480,400 1480,410 L1480,446 Z" fill="#F5F3FF" stroke="#A78BFA" stroke-width="2"/>
+<text x="1300.0" y="421" text-anchor="middle" font-weight="700" font-size="15" fill="#28253D">tcad_verification_candidates</text>
+<text x="1300.0" y="438" text-anchor="middle" font-size="11" fill="#6B6880">Gateway DB</text>
+<text x="1132" y="464.0" font-size="12" fill="#6B6880">uuid</text>
+<text x="1216" y="464.0" font-size="13" font-weight="600" fill="#28253D">tcad_request_id</text>
+<text x="1468" y="464.0" text-anchor="end" font-size="11" font-weight="700" fill="#A78BFA">PK</text>
+<rect x="1121" y="474" width="358" height="28" fill="#F5F3FF" opacity="0.55"/>
+<text x="1132" y="492.0" font-size="12" fill="#6B6880">uuid</text>
+<text x="1216" y="492.0" font-size="13" font-weight="400" fill="#28253D">proposal_id</text>
+<text x="1468" y="492.0" text-anchor="end" font-size="11" font-weight="700" fill="#A78BFA">FK</text>
+<text x="1132" y="520.0" font-size="12" fill="#6B6880">int</text>
+<text x="1216" y="520.0" font-size="13" font-weight="400" fill="#28253D">candidate_index</text>
+<rect x="1121" y="530" width="358" height="28" fill="#F5F3FF" opacity="0.55"/>
+<text x="1132" y="548.0" font-size="12" fill="#6B6880">jsonb</text>
+<text x="1216" y="548.0" font-size="13" font-weight="400" fill="#28253D">process_parameters</text>
+<text x="1132" y="576.0" font-size="12" fill="#6B6880">jsonb</text>
+<text x="1216" y="576.0" font-size="13" font-weight="400" fill="#28253D">predicted_outputs</text>
+<rect x="1121" y="586" width="358" height="28" fill="#F5F3FF" opacity="0.55"/>
+<text x="1132" y="604.0" font-size="12" fill="#6B6880">jsonb</text>
+<text x="1216" y="604.0" font-size="13" font-weight="400" fill="#28253D">result_payload</text>
+<text x="1132" y="632.0" font-size="12" fill="#6B6880">jsonb</text>
+<text x="1216" y="632.0" font-size="13" font-weight="400" fill="#28253D">spec_verdict</text>
+<rect x="1121" y="642" width="358" height="28" fill="#F5F3FF" opacity="0.55"/>
+<text x="1132" y="660.0" font-size="12" fill="#6B6880">text</text>
+<text x="1216" y="660.0" font-size="13" font-weight="400" fill="#28253D">status</text>
+</g>
+<g><rect x="1660" y="400" width="360" height="466" rx="10" fill="#ffffff" stroke="#2DD4BF" stroke-width="2"/>
+<path d="M1660,446 L1660,410 Q1660,400 1670,400 L2010,400 Q2020,400 2020,410 L2020,446 Z" fill="#F0FDFA" stroke="#2DD4BF" stroke-width="2"/>
+<text x="1840.0" y="421" text-anchor="middle" font-weight="700" font-size="15" fill="#28253D">tcad_service_jobs</text>
+<text x="1840.0" y="438" text-anchor="middle" font-size="11" fill="#6B6880">TCAD 서비스 (상태/작업목록.json)</text>
+<text x="1672" y="464.0" font-size="12" fill="#6B6880">uuid</text>
+<text x="1756" y="464.0" font-size="13" font-weight="600" fill="#28253D">request_id</text>
+<text x="2008" y="464.0" text-anchor="end" font-size="11" font-weight="700" fill="#2DD4BF">PK</text>
+<rect x="1661" y="474" width="358" height="28" fill="#F0FDFA" opacity="0.55"/>
+<text x="1672" y="492.0" font-size="12" fill="#6B6880">uuid</text>
+<text x="1756" y="492.0" font-size="13" font-weight="400" fill="#28253D">job_id</text>
+<text x="1672" y="520.0" font-size="12" fill="#6B6880">uuid</text>
+<text x="1756" y="520.0" font-size="13" font-weight="400" fill="#28253D">run_id</text>
+<rect x="1661" y="530" width="358" height="28" fill="#F0FDFA" opacity="0.55"/>
+<text x="1672" y="548.0" font-size="12" fill="#6B6880">text</text>
+<text x="1756" y="548.0" font-size="13" font-weight="400" fill="#28253D">status</text>
+<text x="1672" y="576.0" font-size="12" fill="#6B6880">text</text>
+<text x="1756" y="576.0" font-size="13" font-weight="400" fill="#28253D">progress_stage</text>
+<rect x="1661" y="586" width="358" height="28" fill="#F0FDFA" opacity="0.55"/>
+<text x="1672" y="604.0" font-size="12" fill="#6B6880">jsonb</text>
+<text x="1756" y="604.0" font-size="13" font-weight="400" fill="#28253D">process_parameters</text>
+<text x="1672" y="632.0" font-size="12" fill="#6B6880">jsonb</text>
+<text x="1756" y="632.0" font-size="13" font-weight="400" fill="#28253D">requested_outputs</text>
+<rect x="1661" y="642" width="358" height="28" fill="#F0FDFA" opacity="0.55"/>
+<text x="1672" y="660.0" font-size="12" fill="#6B6880">jsonb</text>
+<text x="1756" y="660.0" font-size="13" font-weight="400" fill="#28253D">predicted_outputs</text>
+<text x="1672" y="688.0" font-size="12" fill="#6B6880">jsonb</text>
+<text x="1756" y="688.0" font-size="13" font-weight="400" fill="#28253D">result_payload</text>
+<rect x="1661" y="698" width="358" height="28" fill="#F0FDFA" opacity="0.55"/>
+<text x="1672" y="716.0" font-size="12" fill="#6B6880">jsonb</text>
+<text x="1756" y="716.0" font-size="13" font-weight="400" fill="#28253D">prediction_error</text>
+<text x="1672" y="744.0" font-size="12" fill="#6B6880">text</text>
+<text x="1756" y="744.0" font-size="13" font-weight="400" fill="#28253D">error_code</text>
+<rect x="1661" y="754" width="358" height="28" fill="#F0FDFA" opacity="0.55"/>
+<rect x="1661" y="754" width="358" height="28" fill="#FEFCE8" stroke="#FACC15" stroke-width="1.5"/>
+<text x="1672" y="772.0" font-size="12" fill="#6B6880">text</text>
+<text x="1756" y="772.0" font-size="13" font-weight="400" fill="#28253D">calc_mode</text>
+<text x="2008" y="772.0" text-anchor="end" font-size="11" font-weight="700" fill="#A16207">신규 제안</text>
+<text x="1672" y="800.0" font-size="12" fill="#6B6880">timestamptz</text>
+<text x="1756" y="800.0" font-size="13" font-weight="400" fill="#28253D">accepted_at</text>
+<rect x="1661" y="810" width="358" height="28" fill="#F0FDFA" opacity="0.55"/>
+<text x="1672" y="828.0" font-size="12" fill="#6B6880">timestamptz</text>
+<text x="1756" y="828.0" font-size="13" font-weight="400" fill="#28253D">started_at</text>
+<text x="1672" y="856.0" font-size="12" fill="#6B6880">timestamptz</text>
+<text x="1756" y="856.0" font-size="13" font-weight="400" fill="#28253D">finished_at</text>
+</g>
+<text x="40" y="640" font-size="14" font-weight="700" fill="#28253D">범례</text>
+<rect x="40" y="649" width="26" height="18" rx="4" fill="#FDF4FF" stroke="#E879F9" stroke-width="2"/><text x="76" y="663" font-size="13" fill="#28253D">모델 서비스 (Jetson)</text>
+<rect x="40" y="677" width="26" height="18" rx="4" fill="#F5F3FF" stroke="#A78BFA" stroke-width="2"/><text x="76" y="691" font-size="13" fill="#28253D">Gateway DB</text>
+<rect x="40" y="705" width="26" height="18" rx="4" fill="#F0FDFA" stroke="#2DD4BF" stroke-width="2"/><text x="76" y="719" font-size="13" fill="#28253D">TCAD 서비스 (워크스테이션 PC)</text>
+<rect x="40" y="733" width="26" height="18" rx="4" fill="#FEFCE8" stroke="#FACC15" stroke-width="2"/><text x="76" y="747" font-size="13" fill="#28253D">신규 제안 필드</text>
+<line x1="40" y1="770" x2="66" y2="770" stroke="#28253D" stroke-width="2" stroke-dasharray="8 5"/><text x="76" y="774" font-size="13" fill="#28253D">시스템 경계를 넘는 HTTP 호출</text>
+<g font-size="12" fill="#6B6880"><text x="40" y="808">route=apply 는 TCAD 서비스 작업을 만들지 않는다.</text><text x="40" y="826">보정값은 compensation.target_process_parameters 로 관리자 승인 큐에 간다.</text><text x="40" y="844">calc_mode(fake/real)는 가짜 결과를 구분하려는 제안 필드다.</text><text x="40" y="862">이벤트로 저장: ROS /fab/events 의 diagnosis.completed 가 Gateway 에 저장된다.</text><text x="40" y="880">HTTP verify: POST /api/v1/tcad/verify, tcad_request_id = request_id 로 같은 작업이다.</text></g>
+</svg>

@@ -1,0 +1,61 @@
+{
+ "비고": "2026-10-22 수정: 노브가 정상이면 보정탐색(compensation_search)을 생략하도록 통신/모델서비스.py, 통신/변환기.py 를 고친 뒤 이 PC에서 다시 받은 응답(로컬). 1단계 판정(decision/knobs/fit)은 그대로 돌리고, 2단계(next_measurement/보정안, 예전엔 ~2000ms)만 생략해서 처리시간이 2133.8ms -> 110.4ms 로 줄었다. 이 경로일 때만 검사값이 INSPECTION_DB(통신/검사결과.db)에 저장된다.",
+ "요청": {
+  "schema_version": 1,
+  "task_type": "diagnose",
+  "request_id": "demo-normal-0001",
+  "model_contract_version": "fab-ml-v1",
+  "input_payload": {
+   "measurements": {"vth": 2.25829, "gm": 4.5730, "id_on": 5.2070, "bv": 41.117},
+   "n_wafers": 100,
+   "refine": false
+  }
+ },
+ "응답_HTTP": 200,
+ "응답": {
+  "request_id": "demo-normal-0001",
+  "job_id": null,
+  "model_contract_version": "fab-ml-v1",
+  "model_version": "mosfet-gp-2026-10-18",
+  "result_origin": "prod",
+  "status": "succeeded",
+  "anomaly_detected": false,
+  "result_payload": {
+   "decision": {
+    "decided": true,
+    "top_category": "normal",
+    "top_category_label": "정상",
+    "top_probability": 1.0,
+    "candidates": [{"category": "normal", "category_label": "정상", "probability": 1.0}],
+    "category_probabilities": {"normal": 1.0, "dose": 0.0, "epi": 0.0, "dose+epi": 0.0, "oxide": 0.0, "dose+oxide": 0.0, "epi+oxide": 0.0, "dose+epi+oxide": 0.0},
+    "deviation_threshold_ratio": 0.05,
+    "decision_threshold_probability": 0.7
+   },
+   "knobs": {
+    "body_dose": {"mean": 7631713175750.582, "ci90": [7469000000000.002, 7815500000000.001], "mean_ratio": 0.9911315812663093, "ci90_ratio": [0.97, 1.015], "p_deviated": 0.0, "unit": "cm^-2"},
+    "epi_doping": {"mean": 1.7055393180143846e+16, "ci90": [1.6915000000000012e+16, 1.7170000000000012e+16], "mean_ratio": 1.0032584223614027, "ci90_ratio": [0.995, 1.01], "p_deviated": 0.0, "unit": "cm^-3"},
+    "oxide_thickness": {"mean": 0.060397869607586925, "ci90": [0.0594, 0.0612], "mean_ratio": 1.0066311601264488, "ci90_ratio": [0.99, 1.02], "p_deviated": 0.0, "unit": "um"}
+   },
+   "next_measurement": null,
+   "compensation": {
+    "route": "no_action",
+    "requires_human_approval": false,
+    "epi_doping": "not_controllable",
+    "high_confidence": false,
+    "confidence_blockers": [],
+    "confidence": null
+   },
+   "fit": {"chi2_min": 0.5191587788382809, "n_obs": 4, "poor_fit_threshold": 16.0, "poor_fit": false},
+   "refine": {"requested": false, "performed": false, "model_mode": null, "decision_changed": null, "reason": "정상이라 생략"},
+   "spec": {"vth_min": 1.7, "vth_max": 2.6, "bv_min": 40.0, "status": "datasheet_AOI4184"}
+  },
+  "metadata": {
+   "n_wafers": 100, "bv_measured": true,
+   "units": {"vth": "V", "gm": "uS/um", "id_on": "uA/um", "bv": "V"},
+   "id_conditions": {"vgs_v": 4.0, "vds_v": 0.1, "temperature_c": 26.85},
+   "processing_ms": 110.4,
+   "timing_ms": {"request_validation": 0.022, "diagnosis": 79.917, "compensation_search": 0.0, "refine": 0.0, "postprocessing": 30.268, "inference_total": 79.979, "service_total": 110.4}
+  },
+  "tcad_proposal": null
+ }
+}
