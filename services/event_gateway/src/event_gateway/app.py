@@ -2,7 +2,8 @@
 
 import asyncio
 import secrets
-from uuid import UUID
+from datetime import datetime, timezone
+from uuid import UUID, uuid4
 from typing import Literal
 
 import psycopg
@@ -10,6 +11,7 @@ from fastapi import FastAPI, Header, HTTPException, WebSocket, WebSocketDisconne
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from .commands import ApprovalConflict, approve_proposal
+from .contracts import EventCreate
 from .inference_jobs import JobConflict, submit_aoi_job, submit_inference_job
 from .config import Settings
 from .repository import EventRepository
@@ -19,6 +21,12 @@ from .stream import format_unity_event
 class ApprovalRequest(BaseModel):
     approved_by: str
     effective_from_lot: str
+
+
+class TcadDecisionRequest(BaseModel):
+    decided_by: str = Field(min_length=1)
+    decision: Literal["approved", "rejected"]
+    selected_tcad_request_id: UUID | None = None
 
 
 class InspectionRequest(BaseModel):
@@ -255,6 +263,83 @@ def create_app(settings: Settings) -> FastAPI:
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return {"command_id": str(command_id), "status": "pending"}
+
+    @app.get("/api/v1/tcad/proposals")
+    def list_tcad_proposals(status: str = "review_required",
+                            x_unity_token: str | None = Header(default=None)):
+        authorize_unity(x_unity_token)
+        with psycopg.connect(settings.database_url, autocommit=True) as connection:
+            groups = connection.execute(
+                "SELECT proposal_id, diagnosis_job_id, run_id, status, created_at "
+                "FROM tcad_proposal_groups WHERE status=%s ORDER BY created_at", (status,),
+            ).fetchall()
+            result = []
+            for proposal_id, job_id, run_id, group_status, created_at in groups:
+                candidates = connection.execute(
+                    "SELECT tcad_request_id, candidate_index, process_parameters, "
+                    "result_payload, spec_verdict FROM tcad_verification_candidates "
+                    "WHERE proposal_id=%s ORDER BY candidate_index", (proposal_id,),
+                ).fetchall()
+                result.append({
+                    "proposal_id": str(proposal_id), "job_id": str(job_id),
+                    "run_id": str(run_id), "status": group_status,
+                    "created_at": created_at.isoformat(),
+                    "candidates": [
+                        {"tcad_request_id": str(c[0]), "candidate_index": c[1],
+                         "process_parameters": c[2], "result_payload": c[3],
+                         "spec_verdict": c[4]}
+                        for c in candidates
+                    ],
+                })
+        return {"proposals": result}
+
+    @app.post("/api/v1/tcad/proposals/{proposal_id}/decision")
+    def decide_tcad_proposal(proposal_id: UUID, request: TcadDecisionRequest,
+                             x_unity_token: str | None = Header(default=None)):
+        authorize_unity(x_unity_token)
+        if request.decision == "approved" and request.selected_tcad_request_id is None:
+            raise HTTPException(status_code=400, detail="selected_tcad_request_id is required to approve")
+        with psycopg.connect(settings.database_url, autocommit=True) as connection:
+            group = connection.execute(
+                "SELECT run_id FROM tcad_proposal_groups WHERE proposal_id=%s AND status='review_required'",
+                (proposal_id,),
+            ).fetchone()
+            if group is None:
+                raise HTTPException(status_code=404, detail="proposal not found or not review_required")
+            run_id = group[0]
+            if request.decision == "approved":
+                candidate = connection.execute(
+                    "SELECT process_parameters FROM tcad_verification_candidates "
+                    "WHERE proposal_id=%s AND tcad_request_id=%s",
+                    (proposal_id, request.selected_tcad_request_id),
+                ).fetchone()
+                if candidate is None:
+                    raise HTTPException(status_code=400, detail="selected candidate does not belong to this proposal")
+                connection.execute(
+                    "UPDATE tcad_proposal_groups SET status='completed',approved_by=%s,"
+                    "approved_at=now(),selected_tcad_request_id=%s,updated_at=now() WHERE proposal_id=%s",
+                    (request.decided_by, request.selected_tcad_request_id, proposal_id),
+                )
+                process_parameters = candidate[0]
+            else:
+                connection.execute(
+                    "UPDATE tcad_proposal_groups SET status='failed',updated_at=now() WHERE proposal_id=%s",
+                    (proposal_id,),
+                )
+                process_parameters = None
+            EventRepository(connection)._insert_event(EventCreate(
+                schema_version=1, event_id=uuid4(),
+                event_type="tcad.verification.decided", source="gateway.tcad", severity="info",
+                payload={
+                    "proposal_id": str(proposal_id), "decision": request.decision,
+                    "decided_by": request.decided_by,
+                    "selected_tcad_request_id": str(request.selected_tcad_request_id)
+                    if request.selected_tcad_request_id else None,
+                },
+                occurred_at=datetime.now(timezone.utc),
+            ), run_id)
+        return {"proposal_id": str(proposal_id), "status": request.decision,
+                "process_parameters": process_parameters}
 
     return app
 

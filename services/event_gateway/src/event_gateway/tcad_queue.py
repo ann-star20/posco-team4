@@ -24,6 +24,7 @@ def admit_tcad_candidates(
     routing_snapshot = {
         "compensation": response["result_payload"]["compensation"],
         "tcad_proposal": response["tcad_proposal"],
+        "spec": response["result_payload"].get("spec"),
     }
     db.execute(
         "INSERT INTO tcad_proposal_groups(proposal_id,diagnosis_job_id,source_event_id,run_id,"

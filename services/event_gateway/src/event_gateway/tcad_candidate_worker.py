@@ -11,6 +11,19 @@ from .repository import EventRepository
 from .tcad_client import TcadCandidateClient
 from .tcad_contracts import TcadVerificationRequest
 
+_EPSILON = 1e-6
+
+
+def evaluate_spec(vth, bv, spec):
+    if not spec:
+        return {"overall": "spec_unavailable"}
+    vth_pass = spec["vth_min"] - _EPSILON <= vth <= spec["vth_max"] + _EPSILON
+    if bv is None:
+        return {"vth_pass": vth_pass, "bv_pass": None, "overall": "bv_unconfirmed", "spec_source": spec.get("status")}
+    bv_pass = bv >= spec["bv_min"] - _EPSILON
+    overall = "in_spec" if vth_pass and bv_pass else "out_of_spec"
+    return {"vth_pass": vth_pass, "bv_pass": bv_pass, "overall": overall, "spec_source": spec.get("status")}
+
 
 class TcadCandidateWorker:
     def __init__(self, connection, settings, http_factory=None):
@@ -202,15 +215,24 @@ class TcadCandidateWorker:
             )
             return
         with self.connection.transaction():
+            spec = self.connection.execute(
+                "SELECT routing_snapshot->'spec' FROM tcad_proposal_groups WHERE proposal_id=%s",
+                (proposal_id,),
+            ).fetchone()[0]
+            outputs = result.result_payload
+            vth = outputs.vth if outputs is not None else None
+            bv = outputs.bv if outputs is not None else None
+            verdict = evaluate_spec(vth, bv, spec)
             updated = self.connection.execute(
                 "UPDATE tcad_verification_candidates SET status=%s,latest_response_body=%s,"
-                "result_payload=%s,prediction_error=%s,metadata=%s,completed_at=now(),"
+                "result_payload=%s,prediction_error=%s,metadata=%s,spec_verdict=%s,completed_at=now(),"
                 "lease_token=NULL,lease_until=NULL,updated_at=now() "
                 "WHERE tcad_request_id=%s AND lease_token=%s RETURNING tcad_request_id",
                 (result.status, Jsonb(data),
                  Jsonb(data.get("result_payload")) if result.result_payload is not None else None,
                  Jsonb(result.prediction_error) if result.prediction_error is not None else None,
                  Jsonb(result.metadata) if result.metadata is not None else None,
+                 Jsonb(verdict),
                 request_id, lease),
             ).fetchone()
             if updated is None:
@@ -220,6 +242,7 @@ class TcadCandidateWorker:
                 "proposal_id": str(proposal_id),
                 "tcad_request_id": str(request_id), "candidate_index": candidate_index,
                 "status": result.status, "result_payload": data.get("result_payload"),
+                "spec_verdict": verdict,
             })
             self._aggregate_group(proposal_id, run_id, original_request_id, job_id)
 

@@ -1,6 +1,6 @@
 # Virtual Fab 현재 시스템 아키텍처
 
-기준일: 2026-10-22
+기준일: 2026-10-23
 
 기준 저장소: `C:\posco_project`
 
@@ -31,9 +31,11 @@ Graphviz 원본: [current-system-architecture.dot](assets/current-system-archite
   `subprocess.run()`으로 `dbascii.exe`를 실행하고, `dbascii.exe`가 다시 Silvaco
   `atlas/atlas2`를 실행한다.
 - Aiven PostgreSQL commit 뒤에만 `/fab/event_acks`의 `committed`가 발행된다.
-- 정책상 모든 보정은 TCAD 검증과 관리자 승인 뒤 가상 공정에만 적용한다. 다만 현재
-  신규 진단 후보 경로는 `review_required`까지 구현됐고, 후보 선택·승인·Unity 명령
-  변환은 아직 기존 승인 경로와 연결되지 않았다.
+- 정책상 모든 보정은 TCAD 검증과 관리자 승인 뒤 가상 공정에만 적용한다. 신규 진단
+  후보 경로는 `review_required` 뒤 `GET/POST /api/v1/tcad/proposals`로 Unity가
+  직접 후보를 조회·승인/반려하며, 승인 시 응답으로 `process_parameters`를 그대로
+  받는다. 이 경로는 기존 `correction_proposals` → `/commands` WebSocket 경로와는
+  별개의 두 번째 승인 메커니즘이다(8절 참고).
 
 ## 2. 전체 배치 아키텍처
 
@@ -194,8 +196,21 @@ sequenceDiagram
         end
         V->>P: batch_completed + review_required
         G-->>U: /stream TCAD 진행·완료·검토 필요 이벤트
-        Note over U,A: 현재 신규 tcad_proposal_groups 흐름은 여기서 정지
-        Note over G,A: 후보 선택·승인·Unity 명령 변환은 후속 연결 필요
+        A->>U: 후보별 spec_verdict 확인, 승인 대상 결정
+        U->>G: GET /api/v1/tcad/proposals?status=review_required
+        G->>P: 그룹 + 후보(process_parameters·result_payload·spec_verdict) 조회
+        G-->>U: proposals[] (후보 목록)
+        U->>G: POST /api/v1/tcad/proposals/{id}/decision
+        alt decision=approved
+            G->>P: proposal_groups.status=completed, approved_by/at, selected_tcad_request_id
+            G->>P: tcad.verification.decided 이벤트
+            G-->>U: {"status":"approved","process_parameters":{...}}
+            Note over U: Unity가 반환된 process_parameters로 가상 공정값 직접 적용
+        else decision=rejected
+            G->>P: proposal_groups.status=failed
+            G->>P: tcad.verification.decided 이벤트
+            G-->>U: {"status":"rejected","process_parameters":null}
+        end
     else route=no_action
         R->>P: diagnosis_results(normal) + event
         G-->>U: /stream diagnosis.completed
@@ -215,6 +230,7 @@ sequenceDiagram
 | `candidate_queued/running` | Windows TCAD 큐 또는 Silvaco 계산 진행 상태 |
 | `batch_completed` | 모든 TCAD 후보가 terminal 상태가 된 상태 |
 | `review_required` | 성공 후보가 있어 관리자 선택·승인을 기다리는 상태 |
+| `tcad.verification.decided` | Unity가 `POST .../decision`으로 승인/반려를 보낸 뒤 기록되는 이벤트 |
 | `correction.applied` | 기존 correction_proposals 경로에서 Unity가 적용했다고 회신한 상태 |
 | ROS ACK `committed` | 해당 Jetson 결과가 Aiven 트랜잭션에 commit된 상태 |
 
@@ -292,6 +308,8 @@ flowchart TB
 | Unity ↔ Gateway | WebSocket | `ws://GATEWAY:8000/api/v1/control` | AOI/Surrogate/Diagnosis 접수 |
 | Gateway → Unity | WebSocket | `/api/v1/stream?run_id=...&after_sequence=...` | Aiven commit 이벤트 replay |
 | Gateway ↔ Unity | WebSocket | `/api/v1/commands?run_id=...` | 승인된 보정 명령과 적용 ACK |
+| Unity → Gateway | HTTP | `GET /api/v1/tcad/proposals?status=review_required` | TCAD 후보 그룹 + spec_verdict 조회 |
+| Unity → Gateway | HTTP | `POST /api/v1/tcad/proposals/{id}/decision` | 후보 승인/반려, 승인 시 process_parameters 회신 |
 | Gateway → Jetson | ROS 2 | `/fab/surrogate_requests` | Surrogate 작업 배포 |
 | Gateway → Jetson | ROS 2 | `/fab/diagnosis_requests` | Diagnosis 작업 배포 |
 | Jetson → Gateway | ROS 2 | `/fab/events` | AOI/ML 결과 이벤트 |
@@ -337,19 +355,25 @@ flowchart TB
 | TCAD Verification Worker | 구현 | prod URL·토큰·동시성 설정 필요 |
 | Windows TCAD HTTP Service | 별도 TCAD PC에서 실행 | 그 워크스테이션의 `dbascii.exe` 직접 실행 |
 | Silvaco Atlas 계산 | 외부 상용 프로그램 | 장시간 실행, 비동기 polling 사용 |
-| 관리자 승인 → Unity 가상 보정 | Gateway 계약 구현 | 실제 운영 전 후보 선택·현 공정값 계약 재검증 |
+| 관리자 승인 → Unity 가상 보정(TCAD 경로) | 구현 (REST 폴링 방식) | `rejected` 경로·`spec_verdict` 미채움 케이스 실환경 미검증 |
 
-### 현재 승인 경로의 구조적 차이
+### 두 가지 승인 경로가 공존한다
 
-- 기존 `POST /api/v1/proposals/{proposal_id}/approval`은
-  `correction_proposals`에서 `status='verified'`인 기존 제안을 승인한다.
-- 신규 Diagnosis → TCAD 경로는 `tcad_proposal_groups`와
-  `tcad_verification_candidates`를 사용한다.
-- 현재 코드에는 `tcad_proposal_groups.selected_tcad_request_id` 선택, 관리자 승인,
-  선택된 `process_parameters`를 Unity `correction.command`로 변환하는 연결이 없다.
-- 따라서 현재 정확한 신규 경로의 종점은 `tcad.verification.review_required` 이벤트다.
-  기존 `/commands` WebSocket은 구현되어 있지만 신규 TCAD 후보에는 아직 자동 연결되지
-  않는다.
+Virtual Fab에는 성격이 다른 승인 경로가 두 개 있으며, 서로 연결되어 있지 않다.
+
+- **기존 경로 (push形, WebSocket)**: `POST /api/v1/proposals/{proposal_id}/approval`이
+  `correction_proposals`에서 `status='verified'`인 기존 제안을 승인하면, Gateway가
+  `/api/v1/commands` WebSocket으로 Unity에 명령을 **push**하고 Unity의 적용 ACK를
+  기다린다.
+- **신규 경로 (pull形, REST)**: Diagnosis → TCAD 후보는 `tcad_proposal_groups` /
+  `tcad_verification_candidates`에 쌓이고, Unity가 `GET /api/v1/tcad/proposals`로
+  직접 **pull**하여 `spec_verdict`를 보고 `POST .../decision`으로 승인/반려한다.
+  승인 응답에 `process_parameters`가 그대로 담겨 오므로, 별도의 명령 변환이나
+  WebSocket 디스패치 없이 Unity가 응답 바디로 바로 가상 공정값을 적용한다.
+  `decision` 호출 결과는 `tcad.verification.decided` 이벤트로 Aiven에 영구 기록된다.
+- 두 경로는 테이블(`correction_proposals` vs `tcad_proposal_groups`)과 전달 방식
+  (push WS vs pull REST)이 모두 달라서, 하나로 통합하려면 별도 설계가 필요하다.
+  현재는 TCAD 유래 보정은 전부 pull REST 경로로만 승인한다.
 
 ## 9. 관련 기준 문서
 

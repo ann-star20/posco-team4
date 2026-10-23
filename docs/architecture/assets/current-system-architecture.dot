@@ -1,7 +1,7 @@
 digraph VirtualFab {
   graph [rankdir=LR, bgcolor="white", pad=0.25, nodesep=0.35, ranksep=0.8,
          fontname="Malgun Gothic", fontsize=16, labelloc=t,
-         label="Virtual Fab 현재 시스템 아키텍처 (2026-10-22)"];
+         label="Virtual Fab 시스템 아키텍처"];
   node [shape=box, style="rounded,filled", fillcolor="#F7FAFC", color="#64748B",
         fontname="Malgun Gothic", fontsize=10, margin="0.12,0.08"];
   edge [color="#475569", fontname="Malgun Gothic", fontsize=8, arrowsize=0.7];
