@@ -159,11 +159,12 @@ class TcadCandidateWorker:
             updated = self.connection.execute(
                 "UPDATE tcad_verification_candidates SET status='queued',acceptance_body=%s,"
                 "queue_position=%s,accepted_at=%s,next_attempt_at=now()+(%s*interval '1 second'),"
+                "result_origin=%s,"
                 "lease_token=NULL,lease_until=NULL,last_error_code=NULL,last_error_message=NULL,"
                 "updated_at=now() WHERE tcad_request_id=%s AND lease_token=%s RETURNING tcad_request_id",
                 (Jsonb(accepted.model_dump(mode="json")), accepted.queue_position,
                  accepted.accepted_at, self.settings.tcad_poll_interval_seconds,
-                 request_id, lease),
+                 self.settings.tcad_mode, request_id, lease),
             ).fetchone()
             if updated is None:
                 return

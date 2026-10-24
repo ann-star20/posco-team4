@@ -277,7 +277,7 @@ def create_app(settings: Settings) -> FastAPI:
             for proposal_id, job_id, run_id, group_status, created_at in groups:
                 candidates = connection.execute(
                     "SELECT tcad_request_id, candidate_index, process_parameters, "
-                    "result_payload, spec_verdict FROM tcad_verification_candidates "
+                    "result_payload, spec_verdict, result_origin FROM tcad_verification_candidates "
                     "WHERE proposal_id=%s ORDER BY candidate_index", (proposal_id,),
                 ).fetchall()
                 result.append({
@@ -287,7 +287,7 @@ def create_app(settings: Settings) -> FastAPI:
                     "candidates": [
                         {"tcad_request_id": str(c[0]), "candidate_index": c[1],
                          "process_parameters": c[2], "result_payload": c[3],
-                         "spec_verdict": c[4]}
+                         "spec_verdict": c[4], "result_origin": c[5] or "unknown"}
                         for c in candidates
                     ],
                 })
