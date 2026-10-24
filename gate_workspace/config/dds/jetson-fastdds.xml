@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<profiles xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
+  <participant profile_name="jetson_wsl_unicast" is_default_profile="true">
+    <rtps>
+      <builtin>
+        <initialPeersList>
+          <locator>
+            <udpv4>
+              <address>192.168.10.182</address>
+            </udpv4>
+          </locator>
+          <!-- Jetson 내부의 ros2 CLI와 AOI 프로세스도 서로 발견한다. -->
+          <locator>
+            <udpv4>
+              <address>192.168.10.224</address>
+            </udpv4>
+          </locator>
+        </initialPeersList>
+      </builtin>
+    </rtps>
+  </participant>
+</profiles>

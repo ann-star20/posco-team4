@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<profiles xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
+  <participant
+    profile_name="wsl_jetson_unicast"
+    is_default_profile="true">
+    <rtps>
+      <builtin>
+        <initialPeersList>
+          <locator>
+            <udpv4>
+              <!-- Jetson Orin Nano -->
+              <address>192.168.10.224</address>
+            </udpv4>
+          </locator>
+          <!-- WSL 내부의 ros2 CLI와 Gateway 프로세스도 서로 발견한다. -->
+          <locator>
+            <udpv4>
+              <!-- 현재 WSL 인스턴스 -->
+              <address>192.168.10.182</address>
+            </udpv4>
+          </locator>
+          <!-- 같은 WSL 인스턴스의 일회성 ros2 CLI participant 검색용. -->
+          <locator>
+            <udpv4>
+              <address>127.0.0.1</address>
+            </udpv4>
+          </locator>
+        </initialPeersList>
+      </builtin>
+    </rtps>
+  </participant>
+</profiles>

@@ -1,0 +1,675 @@
+openapi: 3.1.0
+info:
+  title: Virtual Fab HTTP API
+  version: 1.0.0
+  description: |
+    Virtual Fab의 Gateway, Surrogate ML, TCAD HTTP 계약이다.
+    각 operation의 servers와 x-implementation-status를 확인한다.
+    실제 토큰과 호스트는 환경변수로 관리한다.
+servers:
+  - url: http://127.0.0.1:8000
+    description: 로컬 Gateway 기본 주소
+tags:
+  - name: Gateway
+  - name: Jobs
+  - name: Events
+  - name: Approval
+  - name: Surrogate ML
+  - name: TCAD
+paths:
+  /health/live:
+    get:
+      tags: [Gateway]
+      summary: 프로세스 생존 확인
+      operationId: gatewayLive
+      x-implementation-status: implemented
+      responses:
+        "200":
+          description: 실행 중
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthLive"
+              example: {status: ok}
+  /api/v1/inspection-jobs:
+    post:
+      tags: [Jobs]
+      summary: Gateway 접수형 AOI 작업 생성
+      operationId: createInspectionJob
+      x-implementation-status: implemented
+      security:
+        - UnityToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InspectionRequest"
+            example:
+              schema_version: 1
+              request_id: 29925c8f-f466-43fc-914c-f81141a82354
+              run_id: 3271e8e2-97ba-4ba8-8f93-bfabaa78414e
+              lot_id: LOT-001
+              unit_id: MOSFET-001
+              stage_id: final_aoi
+              stage_attempt: 1
+              expected_stage_version: 0
+              fixture_name: test_aoi_mosfet1.jpg
+      responses:
+        "202":
+          description: 작업 저장 및 ROS dispatch 대기
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobAccepted"
+              example:
+                job_id: 46c682b1-f800-4fbb-8244-37953a449de0
+                status: queued
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "503": {$ref: "#/components/responses/Unavailable"}
+  /api/v1/surrogate-jobs:
+    post:
+      tags: [Jobs]
+      summary: 간이 원인분석 ML 작업 생성
+      operationId: createSurrogateJob
+      x-implementation-status: implemented
+      security:
+        - UnityToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SurrogateJobRequest"
+            example:
+              schema_version: 1
+              request_id: e86727e4-e27b-4262-ad3b-1cf0868bc107
+              run_id: 3271e8e2-97ba-4ba8-8f93-bfabaa78414e
+              lot_id: LOT-001
+              unit_id: MOSFET-001
+              stage_id: electrical
+              stage_attempt: 1
+              model_contract_version: fab-ml-v1
+              input_payload:
+                body_dose: 1.2e13
+                epi_doping: 2.5e15
+                oxide_thickness_nm: 45.0
+                id_conditions: {vgs_v: 4.0, vds_v: 1.0, temperature_c: 25.0}
+      responses:
+        "202":
+          description: 작업 저장 및 ROS dispatch 대기
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/JobAccepted"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "503": {$ref: "#/components/responses/Unavailable"}
+  /api/v1/jobs/{job_id}:
+    get:
+      tags: [Jobs]
+      summary: AOI 또는 Surrogate 작업 상태 조회
+      operationId: getJob
+      x-implementation-status: implemented
+      security:
+        - UnityToken: []
+      parameters:
+        - $ref: "#/components/parameters/JobId"
+      responses:
+        "200":
+          description: 작업 상태
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/JobStatus"}
+              example:
+                job_id: 46c682b1-f800-4fbb-8244-37953a449de0
+                request_id: 29925c8f-f466-43fc-914c-f81141a82354
+                run_id: 3271e8e2-97ba-4ba8-8f93-bfabaa78414e
+                status: completed
+                result_event_id: 17099e6a-df03-55dd-9723-58db842e2771
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /api/v1/inspection-jobs/{job_id}:
+    get:
+      tags: [Jobs]
+      summary: AOI 작업 상태 조회 호환 경로
+      operationId: getInspectionJob
+      deprecated: true
+      x-implementation-status: implemented
+      security:
+        - UnityToken: []
+      parameters:
+        - $ref: "#/components/parameters/JobId"
+      responses:
+        "200":
+          description: 작업 상태
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/JobStatus"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /api/v1/events:
+    get:
+      tags: [Events]
+      summary: Aiven에 커밋된 이벤트 재생
+      operationId: listEvents
+      x-implementation-status: implemented
+      parameters:
+        - name: run_id
+          in: query
+          required: true
+          schema: {type: string, format: uuid}
+        - name: after_sequence
+          in: query
+          schema: {type: integer, minimum: 0, default: 0}
+        - name: limit
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 1000, default: 200}
+      responses:
+        "200":
+          description: 저장 순서대로 반환된 이벤트
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [events]
+                properties:
+                  events:
+                    type: array
+                    items: {$ref: "#/components/schemas/StoredEvent"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+  /api/v1/proposals/{proposal_id}/approval:
+    post:
+      tags: [Approval]
+      summary: TCAD 검증을 통과한 보정 후보 승인
+      operationId: approveProposal
+      x-implementation-status: implemented
+      security:
+        - ApprovalToken: []
+      parameters:
+        - name: proposal_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApprovalRequest"
+            example:
+              approved_by: fab-admin
+              effective_from_lot: LOT-002
+      responses:
+        "200":
+          description: 적용 명령 생성
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [command_id, status]
+                properties:
+                  command_id: {type: string, format: uuid}
+                  status: {type: string, const: pending}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "503": {$ref: "#/components/responses/Unavailable"}
+  /api/v1/predict:
+    post:
+      tags: [Surrogate ML]
+      summary: Jetson 간이 원인분석 모델 호출
+      operationId: predictSurrogate
+      x-implementation-status: mock
+      servers:
+        - url: http://127.0.0.1:8300
+          description: Mock Surrogate
+        - url: http://{surrogateHost}:{surrogatePort}
+          description: 실제 Jetson 모델 서비스
+          variables:
+            surrogateHost: {default: 127.0.0.1}
+            surrogatePort: {default: "8300"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/SurrogatePredictRequest"}
+      responses:
+        "200":
+          description: 모델 예측 결과
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/SurrogatePredictResponse"}
+        "422": {$ref: "#/components/responses/Unprocessable"}
+  /health/ready:
+    get:
+      tags: [TCAD]
+      summary: 외부 서비스 준비 상태
+      operationId: externalReady
+      x-implementation-status: scaffold
+      servers:
+        - url: http://127.0.0.1:8100
+          description: Mock TCAD
+        - url: http://{tcadHost}:{tcadPort}
+          description: TCAD 워크스테이션
+          variables:
+            tcadHost: {default: 127.0.0.1}
+            tcadPort: {default: "8200"}
+      responses:
+        "200":
+          description: 준비됨
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/HealthReady"}
+        "503": {$ref: "#/components/responses/Unavailable"}
+  /api/v1/verifications:
+    post:
+      tags: [TCAD]
+      summary: TCAD 검증 작업 생성
+      operationId: createVerification
+      x-implementation-status: mock
+      servers:
+        - url: http://127.0.0.1:8100
+          description: Mock TCAD
+        - url: http://{tcadHost}:{tcadPort}
+          description: TCAD 워크스테이션 service scaffold
+          variables:
+            tcadHost: {default: 127.0.0.1}
+            tcadPort: {default: "8200"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/TcadVerificationRequest"}
+      responses:
+        "202":
+          description: 검증 작업 접수
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/TcadAccepted"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "503": {$ref: "#/components/responses/Unavailable"}
+  /api/v1/verifications/{job_id}:
+    get:
+      tags: [TCAD]
+      summary: TCAD 검증 작업 조회
+      operationId: getVerification
+      x-implementation-status: mock
+      servers:
+        - url: http://127.0.0.1:8100
+          description: Mock TCAD
+        - url: http://{tcadHost}:{tcadPort}
+          description: TCAD 워크스테이션 service scaffold
+          variables:
+            tcadHost: {default: 127.0.0.1}
+            tcadPort: {default: "8200"}
+      parameters:
+        - $ref: "#/components/parameters/JobId"
+      responses:
+        "200":
+          description: 실행 중 또는 완료 결과
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/TcadRunning"
+                  - $ref: "#/components/schemas/TcadResult"
+        "404": {$ref: "#/components/responses/NotFound"}
+  /api/v1/tcad/verify:
+    post:
+      tags: [TCAD]
+      summary: 진단 보정 후보 TCAD 비동기 검증 접수
+      operationId: createTcadCandidateVerification
+      x-implementation-status: implemented
+      servers:
+        - url: http://127.0.0.1:8100
+          description: production-shaped mock TCAD
+        - url: http://{tcadHost}:{tcadPort}
+          description: 실제 TCAD 검증 서비스
+          variables:
+            tcadHost: {default: 127.0.0.1}
+            tcadPort: {default: "8200"}
+      security:
+        - TcadToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/TcadCandidateVerificationRequest"}
+      responses:
+        "202":
+          description: TCAD 서비스 큐 접수
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/TcadCandidateAccepted"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "422": {$ref: "#/components/responses/Unprocessable"}
+        "503": {$ref: "#/components/responses/Unavailable"}
+  /api/v1/tcad/jobs/{request_id}:
+    get:
+      tags: [TCAD]
+      summary: 후보별 TCAD 검증 상태 조회
+      operationId: getTcadCandidateVerification
+      x-implementation-status: implemented
+      security:
+        - TcadToken: []
+      parameters:
+        - name: request_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        "200":
+          description: queued, running, succeeded, failed 또는 cancelled
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/TcadCandidateJobStatus"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "404": {$ref: "#/components/responses/NotFound"}
+
+components:
+  securitySchemes:
+    UnityToken:
+      type: apiKey
+      in: header
+      name: X-Unity-Token
+    ApprovalToken:
+      type: apiKey
+      in: header
+      name: X-Approval-Token
+    TcadToken:
+      type: apiKey
+      in: header
+      name: X-Fab-Token
+  parameters:
+    JobId:
+      name: job_id
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+  responses:
+    BadRequest:
+      description: 요청 계약 오류
+      content: {application/json: {schema: {$ref: "#/components/schemas/Error"}}}
+    Unauthorized:
+      description: 토큰 누락 또는 불일치
+      content: {application/json: {schema: {$ref: "#/components/schemas/Error"}}}
+    Forbidden:
+      description: 승인자 불일치
+      content: {application/json: {schema: {$ref: "#/components/schemas/Error"}}}
+    NotFound:
+      description: 자원 없음
+      content: {application/json: {schema: {$ref: "#/components/schemas/Error"}}}
+    Conflict:
+      description: 멱등 키 또는 현재 상태 충돌
+      content: {application/json: {schema: {$ref: "#/components/schemas/Error"}}}
+    Unprocessable:
+      description: 모델 입력 계약 오류
+      content: {application/json: {schema: {$ref: "#/components/schemas/Error"}}}
+    Unavailable:
+      description: 설정 또는 backend 준비 안 됨
+      content: {application/json: {schema: {$ref: "#/components/schemas/Error"}}}
+  schemas:
+    TcadProcessParameters:
+      type: object
+      additionalProperties: false
+      required: [body_dose, epi_doping, oxide_thickness]
+      properties:
+        body_dose: {type: number, exclusiveMinimum: 0, description: cm^-2}
+        epi_doping: {type: number, exclusiveMinimum: 0, description: cm^-3}
+        oxide_thickness: {type: number, exclusiveMinimum: 0, description: um}
+    TcadCandidateVerificationRequest:
+      type: object
+      additionalProperties: false
+      required: [request_id, process_parameters, requested_outputs]
+      properties:
+        request_id: {type: string, format: uuid, description: 후보별 tcad_request_id}
+        job_id: {type: string, format: uuid}
+        run_id: {type: string, format: uuid}
+        lot_id: {type: string}
+        process_parameters: {$ref: "#/components/schemas/TcadProcessParameters"}
+        requested_outputs:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items: {type: string, enum: [vth, gm, id_on, bv]}
+        predicted_outputs: {$ref: "#/components/schemas/VectorY"}
+        options:
+          type: object
+          properties:
+            timeout_seconds: {type: integer, minimum: 1, default: 5400}
+    TcadCandidateAccepted:
+      type: object
+      required: [request_id, status, queue_position, estimated_seconds, accepted_at]
+      properties:
+        request_id: {type: string, format: uuid}
+        status: {type: string, const: queued}
+        queue_position: {type: integer, minimum: 0}
+        estimated_seconds: {type: integer, minimum: 0}
+        accepted_at: {type: string, format: date-time}
+    TcadCandidateJobStatus:
+      type: object
+      required: [request_id, status]
+      properties:
+        request_id: {type: string, format: uuid}
+        status: {type: string, enum: [queued, running, succeeded, failed, cancelled]}
+        queue_position: {type: integer, minimum: 0}
+        estimated_seconds: {type: integer, minimum: 0}
+        progress: {type: object}
+        result_payload: {$ref: "#/components/schemas/VectorY"}
+        prediction_error: {type: object}
+        metadata: {type: object}
+        error_code: {type: string}
+        error_message: {type: string}
+        cancelled_at: {type: string, format: date-time}
+    TcadCandidateGatewayState:
+      type: object
+      description: Aiven과 Unity 이벤트에서 사용하는 Gateway 후보 상관관계
+      required: [proposal_id, tcad_request_id, candidate_index, status]
+      properties:
+        proposal_id: {type: string, format: uuid}
+        tcad_request_id: {type: string, format: uuid}
+        candidate_index: {type: integer, minimum: 0}
+        status:
+          type: string
+          enum: [pending, submitting, queued, running, succeeded, failed, cancelled, expired]
+    HealthLive:
+      type: object
+      required: [status]
+      properties:
+        status: {type: string, const: ok}
+        backend: {type: string}
+        result_origin: {type: string, enum: [mock, prod]}
+    HealthReady:
+      type: object
+      required: [status]
+      properties:
+        status: {type: string, enum: [ready, ok]}
+        result_origin: {type: string, enum: [mock, prod]}
+    Error:
+      type: object
+      properties:
+        detail: {}
+    InspectionRequest:
+      type: object
+      additionalProperties: false
+      required: [schema_version, request_id, run_id, lot_id, unit_id]
+      properties:
+        schema_version: {type: integer, const: 1}
+        request_id: {type: string, format: uuid}
+        run_id: {type: string, format: uuid}
+        lot_id: {type: string, minLength: 1}
+        unit_id: {type: string, minLength: 1}
+        stage_id: {type: string, minLength: 1, default: final_aoi}
+        stage_attempt: {type: integer, minimum: 1, default: 1}
+        expected_stage_version: {type: [integer, "null"], minimum: 0}
+        fixture_name:
+          type: [string, "null"]
+          minLength: 1
+          pattern: "^[^/\\\\]+$"
+    SurrogateJobRequest:
+      type: object
+      additionalProperties: false
+      required: [schema_version, request_id, run_id, lot_id, unit_id, input_payload]
+      properties:
+        schema_version: {type: integer, const: 1}
+        request_id: {type: string, format: uuid}
+        run_id: {type: string, format: uuid}
+        lot_id: {type: string, minLength: 1}
+        unit_id: {type: string, minLength: 1}
+        stage_id: {type: string, default: electrical}
+        stage_attempt: {type: integer, minimum: 1, default: 1}
+        model_contract_version: {type: string, const: fab-ml-v1}
+        input_payload: {type: object, additionalProperties: true}
+    JobAccepted:
+      type: object
+      required: [job_id, status]
+      properties:
+        job_id: {type: string, format: uuid}
+        status: {type: string, enum: [queued, dispatching, accepted, running, completed, failed, cancelled]}
+    JobStatus:
+      type: object
+      required: [job_id, request_id, run_id, status, result_event_id]
+      properties:
+        job_id: {type: string, format: uuid}
+        request_id: {type: string, format: uuid}
+        run_id: {type: string, format: uuid}
+        status: {type: string, enum: [queued, dispatching, accepted, running, completed, failed, cancelled]}
+        result_event_id: {type: [string, "null"], format: uuid}
+    ApprovalRequest:
+      type: object
+      required: [approved_by, effective_from_lot]
+      properties:
+        approved_by: {type: string, minLength: 1}
+        effective_from_lot: {type: string, minLength: 1}
+    StoredEvent:
+      type: object
+      required: [sequence, event_id, run_id, event_type, source, severity, payload, occurred_at, received_at]
+      properties:
+        sequence: {type: integer, minimum: 1}
+        event_id: {type: string, format: uuid}
+        run_id: {type: string, format: uuid}
+        event_type: {type: string}
+        source: {type: string}
+        severity: {type: string, enum: [debug, info, warning, error, critical]}
+        payload: {type: object}
+        occurred_at: {type: string, format: date-time}
+        received_at: {type: string, format: date-time}
+        unity_mode: {type: string, enum: [mock, prod]}
+        approval_allowed: {type: boolean}
+    SurrogatePredictRequest:
+      type: object
+      required: [schema_version, task_type, job_id, request_id, run_id, lot_id, attempt, model_contract_version, input_payload]
+      properties:
+        schema_version: {type: integer, const: 1}
+        task_type: {type: string, const: surrogate}
+        job_id: {type: string, format: uuid}
+        request_id: {type: string, format: uuid}
+        run_id: {type: string, format: uuid}
+        lot_id: {type: string}
+        attempt: {type: integer, minimum: 1}
+        model_contract_version: {type: string, const: fab-ml-v1}
+        input_payload: {type: object}
+        surrogate_mode: {type: string, enum: [mock, prod]}
+    SurrogatePredictResponse:
+      type: object
+      required: [request_id, job_id, model_contract_version, model_version, result_origin, status, anomaly_detected, result_payload, metadata]
+      properties:
+        request_id: {type: string, format: uuid}
+        job_id: {type: string, format: uuid}
+        model_contract_version: {type: string, const: fab-ml-v1}
+        model_version: {type: string}
+        result_origin: {type: string, enum: [mock, prod]}
+        status: {type: string, enum: [succeeded, failed]}
+        anomaly_detected: {type: boolean}
+        result_payload:
+          type: object
+          description: ML 팀이 정의한 측정 조건에 따른 vth, gm, id, bv 결과
+        metadata:
+          type: object
+          description: 입력 변환, Id 측정 조건, 모델 메타데이터
+        tcad_proposal:
+          oneOf:
+            - $ref: "#/components/schemas/CorrectionProposal"
+            - type: "null"
+    VectorX:
+      type: object
+      additionalProperties: false
+      required: [oxide_thickness, body_dose, diffusion_time, epi_doping]
+      properties:
+        oxide_thickness: {type: number}
+        body_dose: {type: number}
+        diffusion_time: {type: number}
+        epi_doping: {type: number}
+    VectorY:
+      type: object
+      additionalProperties: false
+      required: [vth, gm, id_on, bv]
+      properties:
+        vth: {type: number}
+        gm: {type: number}
+        id_on: {type: number}
+        bv: {type: number}
+    OutputRange:
+      type: object
+      required: [min, max]
+      properties:
+        min: {type: number}
+        max: {type: number}
+    CorrectionProposal:
+      type: object
+      required: [proposal_id, run_id, representation, baseline_version, x_current, delta_x, x_candidate, y_observed, targets]
+      properties:
+        proposal_id: {type: string, format: uuid}
+        run_id: {type: string, format: uuid}
+        representation: {type: string, const: normalized_ratio}
+        baseline_version: {type: string}
+        x_current: {$ref: "#/components/schemas/VectorX"}
+        delta_x: {$ref: "#/components/schemas/VectorX"}
+        x_candidate: {$ref: "#/components/schemas/VectorX"}
+        y_observed: {$ref: "#/components/schemas/VectorY"}
+        y_predicted:
+          oneOf:
+            - $ref: "#/components/schemas/VectorY"
+            - type: "null"
+        targets:
+          type: object
+          required: [vth, gm, id_on, bv]
+          properties:
+            vth: {$ref: "#/components/schemas/OutputRange"}
+            gm: {$ref: "#/components/schemas/OutputRange"}
+            id_on: {$ref: "#/components/schemas/OutputRange"}
+            bv: {$ref: "#/components/schemas/OutputRange"}
+    TcadVerificationRequest:
+      allOf:
+        - $ref: "#/components/schemas/CorrectionProposal"
+        - type: object
+          required: [request_id]
+          properties:
+            request_id: {type: string, format: uuid}
+    TcadAccepted:
+      type: object
+      required: [request_id, job_id]
+      properties:
+        request_id: {type: string, format: uuid}
+        job_id: {type: string, format: uuid}
+    TcadRunning:
+      type: object
+      required: [status, job_id]
+      properties:
+        status: {type: string, const: running}
+        job_id: {type: string, format: uuid}
+    TcadResult:
+      type: object
+      required: [status, request_id, job_id, result_origin, deck_template_version, y_verified]
+      properties:
+        status: {type: string, const: succeeded}
+        request_id: {type: string, format: uuid}
+        job_id: {type: string, format: uuid}
+        result_origin: {type: string, enum: [mock, prod]}
+        deck_template_version: {type: string}
+        y_verified: {$ref: "#/components/schemas/VectorY"}
+

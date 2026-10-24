@@ -1,0 +1,68 @@
+digraph VirtualFab {
+  graph [rankdir=LR, bgcolor="white", pad=0.25, nodesep=0.35, ranksep=0.8,
+         fontname="Malgun Gothic", fontsize=16, labelloc=t,
+         label="Virtual Fab 시스템 아키텍처"];
+  node [shape=box, style="rounded,filled", fillcolor="#F7FAFC", color="#64748B",
+        fontname="Malgun Gothic", fontsize=10, margin="0.12,0.08"];
+  edge [color="#475569", fontname="Malgun Gothic", fontsize=8, arrowsize=0.7];
+
+  camera [label="IP Camera\nHTTP/HTTPS video", fillcolor="#ECFDF5"];
+  subgraph cluster_unity {
+    label="Unity PC"; color="#A78BFA"; style="rounded";
+    unity [label="Virtual Fab UI\nPreview · AOI · ML 요청\nTCAD 결과 · 관리자 검토", fillcolor="#F5F3FF"];
+  }
+  subgraph cluster_jetson {
+    label="Jetson Orin Nano"; color="#22C55E"; style="rounded";
+    capture [label="Camera Capture\n+ RAM Ring Buffer"];
+    preview [label="Preview WS :8500"];
+    aoiws [label="AOI WS :8400\n+ SQLite Queue/Outbox"];
+    aoi [label="AOI Models\nPart → Defect", fillcolor="#ECFDF5"];
+    files [shape=cylinder, label="result/aoi\noriginal · annotated · JSON"];
+    sw [label="Surrogate ROS Worker"];
+    dw [label="Diagnosis ROS Worker"];
+    mlapi [label="ML HTTP Service :8300\n/predict · /diagnose", fillcolor="#FEF3C7"];
+    sm [label="TCAD Surrogate GP\nVth · gm · Id_on · BV", fillcolor="#FEF3C7"];
+    da [label="Diagnosis Agent\n원인 · 보정 후보 · route", fillcolor="#FEF3C7"];
+  }
+  subgraph cluster_wsl {
+    label="Gateway Server PC / Ubuntu WSL"; color="#60A5FA"; style="rounded";
+    gateway [label="Event Gateway :8000\ncontrol · stream · commands", fillcolor="#EFF6FF"];
+    ros [label="ROS Gateway Bridge\n/fab_gateway_bridge", fillcolor="#EFF6FF"];
+    verify [label="TCAD Verification Worker\nDB lease · submit · poll", fillcolor="#EFF6FF"];
+  }
+  subgraph cluster_windows {
+    label="Separate TCAD Workstation PC / Windows"; color="#F59E0B"; style="rounded";
+    thttp [label="TCAD HTTP Service :8400\n서비스.py · queue/status wrapper", fillcolor="#FFF7ED"];
+    dbascii [label="dbascii.exe\nsubprocess child", fillcolor="#FFF7ED"];
+    atlas [label="Silvaco atlas/atlas2\nTCAD simulation", fillcolor="#FFEDD5"];
+  }
+  pg [shape=cylinder, label="Aiven PostgreSQL\nevents · jobs · ML results\nTCAD queue · approval · commands", fillcolor="#F1F5F9"];
+
+  camera -> capture;
+  capture -> preview;
+  preview -> unity [label="Preview JSON + JPEG"];
+  unity -> aoiws [label="frame_id AOI request"];
+  aoiws -> aoi;
+  aoi -> files;
+  aoi -> unity [label="result JSON + annotated JPEG"];
+  aoiws -> ros [label="/fab/events", style=dashed];
+  unity -> gateway [label="ML request"];
+  gateway -> unity [label="event stream\n(신규 TCAD는 review_required까지)"];
+  gateway -> pg [dir=both, label="durable state"];
+  pg -> ros [dir=both, label="dispatch + event commit"];
+  ros -> sw [label="/fab/surrogate_requests"];
+  ros -> dw [label="/fab/diagnosis_requests"];
+  sw -> mlapi [label="POST /predict"];
+  dw -> mlapi [label="POST /diagnose"];
+  mlapi -> sm;
+  mlapi -> da;
+  sw -> ros [label="surrogate.completed"];
+  dw -> ros [label="diagnosis.completed"];
+  ros -> sw [label="committed ACK", style=dashed];
+  ros -> dw [label="committed ACK", style=dashed];
+  pg -> verify [dir=both, label="TCAD candidate queue"];
+  verify -> thttp [label="Network HTTP\nPOST verify / GET job"];
+  thttp -> dbascii [label="subprocess.run"];
+  dbascii -> atlas [label="launch"];
+  atlas -> thttp [label="result", style=dashed];
+}

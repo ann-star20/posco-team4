@@ -1,0 +1,663 @@
+asyncapi: 2.6.0
+info:
+  title: Virtual Fab WebSocket and ROS 2 API
+  version: 1.0.0
+  description: |
+    Unity-Jetson 직접 AOI WebSocket, Unity-Gateway 중앙 WebSocket,
+    Jetson-Gateway ROS 2 토픽의 메시지 계약이다.
+    publish/subscribe 방향은 해당 server의 애플리케이션 관점이며 각 operation 설명에
+    실제 송신자와 수신자를 명시한다.
+defaultContentType: application/json
+servers:
+  jetsonPreview:
+    url: ws://{jetsonHost}:{previewPort}
+    protocol: ws
+    description: Unity가 구독하는 Jetson 저지연 카메라 Preview 서버
+    variables:
+      jetsonHost:
+        default: 127.0.0.1
+        description: JETSON_HOST 환경변수 값
+      previewPort:
+        default: "8500"
+        description: CAMERA_PREVIEW_PORT 환경변수 값
+    x-implementation-status: implemented
+  jetsonAoi:
+    url: ws://{jetsonHost}:{jetsonPort}
+    protocol: ws
+    description: Unity가 직접 연결하는 Jetson AOI 서버
+    variables:
+      jetsonHost:
+        default: 127.0.0.1
+        description: JETSON_HOST 환경변수 값
+      jetsonPort:
+        default: "8400"
+        description: AOI_UNITY_WS_PORT 환경변수 값
+    x-implementation-status: implemented
+  gatewayWebSocket:
+    url: ws://{gatewayHost}:{gatewayPort}
+    protocol: ws
+    description: Unity 중앙 제어·이벤트·보정 Gateway
+    variables:
+      gatewayHost: {default: 127.0.0.1}
+      gatewayPort: {default: "8000"}
+    x-implementation-status: implemented
+  rosDomain:
+    url: ros2://domain/{domainId}
+    protocol: ros2-dds
+    description: Jetson과 WSL이 함께 참여하는 ROS 2 DDS domain
+    variables:
+      domainId:
+        default: "0"
+        description: 양쪽 ROS_DOMAIN_ID가 같아야 함
+    x-ros2-distribution: humble
+    x-ros2-message-type: std_msgs/msg/String
+    x-implementation-status: implemented
+
+channels:
+  /camera/preview:
+    description: Unity가 구독한 뒤 최신 JPEG frame만 JSON metadata와 binary 순서로 받는다.
+    servers: [jetsonPreview]
+    bindings:
+      ws:
+        method: GET
+    publish:
+      operationId: unitySubscribesCameraPreview
+      message:
+        $ref: "#/components/messages/CameraPreviewSubscribe"
+    subscribe:
+      operationId: unityReceivesCameraPreview
+      message:
+        oneOf:
+          - $ref: "#/components/messages/CameraPreviewSubscribed"
+          - $ref: "#/components/messages/CameraPreviewFrame"
+          - $ref: "#/components/messages/CameraPreviewJpeg"
+    x-frame-policy: latest-only; 느린 클라이언트의 이전 frame은 폐기
+    x-implementation-status: implemented
+  /aoi:
+    description: Unity가 Jetson에 AOI를 요청하고 JSON 결과와 annotated JPEG를 받는다.
+    servers: [jetsonAoi]
+    bindings:
+      ws:
+        method: GET
+    publish:
+      operationId: unityRequestsAoi
+      summary: Unity → Jetson JSON text frame
+      message:
+        $ref: "#/components/messages/AoiInspectionRequested"
+    subscribe:
+      operationId: unityReceivesAoiResult
+      summary: Jetson → Unity accepted 뒤 completed JSON+JPEG, rejected 또는 failed JSON
+      message:
+        oneOf:
+          - $ref: "#/components/messages/AoiInspectionAccepted"
+          - $ref: "#/components/messages/AoiInspectionRejected"
+          - $ref: "#/components/messages/AoiInspectionCompleted"
+          - $ref: "#/components/messages/AoiAnnotatedJpeg"
+          - $ref: "#/components/messages/AoiInspectionFailed"
+    x-implementation-status: implemented
+    x-durability-note: 직접 응답은 DB commit을 의미하지 않음
+  /api/v1/control:
+    description: Unity가 Gateway에 AOI 또는 Surrogate 작업을 요청하는 중앙 제어 채널.
+    servers: [gatewayWebSocket]
+    bindings:
+      ws:
+        method: GET
+        headers:
+          type: object
+          required: [x-unity-token]
+          properties:
+            x-unity-token: {type: string, writeOnly: true}
+    publish:
+      operationId: unitySendsControlRequest
+      message:
+        oneOf:
+          - $ref: "#/components/messages/GatewayInspectionRequested"
+          - $ref: "#/components/messages/GatewaySurrogateRequested"
+    subscribe:
+      operationId: unityReceivesControlReceipt
+      message:
+        oneOf:
+          - $ref: "#/components/messages/RequestAccepted"
+          - $ref: "#/components/messages/RequestRejected"
+    x-implementation-status: implemented
+  /api/v1/stream:
+    description: Aiven에 커밋된 이벤트를 sequence 순서로 Unity에 재생한다.
+    servers: [gatewayWebSocket]
+    bindings:
+      ws:
+        method: GET
+        query:
+          type: object
+          required: [run_id]
+          properties:
+            run_id: {type: string, format: uuid}
+            after_sequence: {type: integer, minimum: 0, default: 0}
+    subscribe:
+      operationId: unityReceivesCommittedEvents
+      message:
+        $ref: "#/components/messages/StoredEvent"
+    x-implementation-status: implemented
+  /api/v1/commands:
+    description: 승인된 가상 보정 명령을 Gateway가 Unity에 보내고 Unity가 적용 영수증을 반환한다.
+    servers: [gatewayWebSocket]
+    bindings:
+      ws:
+        method: GET
+        query:
+          type: object
+          required: [run_id]
+          properties:
+            run_id: {type: string, format: uuid}
+        headers:
+          type: object
+          required: [x-unity-token]
+          properties:
+            x-unity-token: {type: string, writeOnly: true}
+    subscribe:
+      operationId: unityReceivesCorrectionCommand
+      message:
+        oneOf:
+          - $ref: "#/components/messages/CorrectionCommand"
+          - $ref: "#/components/messages/ApplicationAck"
+          - $ref: "#/components/messages/ApplicationRejected"
+    publish:
+      operationId: unityReportsCorrectionApplied
+      message:
+        $ref: "#/components/messages/CorrectionApplied"
+    x-implementation-status: implemented
+  /fab/inference_requests:
+    description: Gateway ROS bridge → Jetson AOI Worker.
+    servers: [rosDomain]
+    publish:
+      operationId: gatewayPublishesAoiRequest
+      message: {$ref: "#/components/messages/RosAoiRequest"}
+    bindings:
+      x-ros2:
+        messageType: std_msgs/msg/String
+        qosDepth: 10
+        payloadEncoding: JSON UTF-8
+    x-implementation-status: implemented
+  /fab/surrogate_requests:
+    description: Gateway ROS bridge → Jetson Surrogate Worker.
+    servers: [rosDomain]
+    publish:
+      operationId: gatewayPublishesSurrogateRequest
+      message: {$ref: "#/components/messages/RosSurrogateRequest"}
+    bindings:
+      x-ros2:
+        messageType: std_msgs/msg/String
+        qosDepth: 10
+        payloadEncoding: JSON UTF-8
+    x-implementation-status: implemented
+  /fab/events:
+    description: Jetson AOI/Surrogate/공정 노드 → Gateway ROS bridge. DB ACK 전까지 재발행 가능.
+    servers: [rosDomain]
+    subscribe:
+      operationId: gatewayConsumesJetsonEvent
+      message: {$ref: "#/components/messages/RosEvent"}
+    bindings:
+      x-ros2:
+        messageType: std_msgs/msg/String
+        qosDepth: 10
+        delivery: at-least-once-at-application-layer
+        idempotencyKey: event_id
+    x-implementation-status: implemented
+    x-direct-aoi-bridge-status: implemented
+  /fab/event_acks:
+    description: Gateway ROS bridge → Jetson outbox. Aiven commit 또는 dead-letter 격리 영수증.
+    servers: [rosDomain]
+    publish:
+      operationId: gatewayPublishesEventAck
+      message: {$ref: "#/components/messages/RosEventAck"}
+    bindings:
+      x-ros2:
+        messageType: std_msgs/msg/String
+        qosDepth: 10
+    x-implementation-status: implemented
+  /fab/commands:
+    description: Gateway ROS bridge → Jetson 가상 공정 명령 구독자.
+    servers: [rosDomain]
+    publish:
+      operationId: gatewayPublishesCorrectionCommand
+      message: {$ref: "#/components/messages/RosCorrectionCommand"}
+    bindings:
+      x-ros2:
+        messageType: std_msgs/msg/String
+        qosDepth: 10
+        authentication: HMAC-SHA256 command_mac
+    x-implementation-status: implemented
+
+components:
+  messages:
+    CameraPreviewSubscribe:
+      name: camera.preview.subscribe
+      contentType: application/json
+      payload: {$ref: "#/components/schemas/CameraPreviewSubscribe"}
+    CameraPreviewSubscribed:
+      name: camera.preview.subscribed
+      contentType: application/json
+      payload: {$ref: "#/components/schemas/CameraPreviewSubscribed"}
+    CameraPreviewFrame:
+      name: camera.preview.frame
+      contentType: application/json
+      payload: {$ref: "#/components/schemas/CameraPreviewFrame"}
+    CameraPreviewJpeg:
+      name: camera.preview.jpeg
+      contentType: image/jpeg
+      payload: {type: string, format: binary}
+      x-frame-order: CameraPreviewFrame 바로 다음 binary frame
+    AoiInspectionRequested:
+      name: aoi.inspection.requested
+      title: Unity AOI 직접 검사 요청
+      contentType: application/json
+      payload: {$ref: "#/components/schemas/AoiDirectRequest"}
+      examples:
+        - payload:
+            type: aoi.inspection.requested
+            schema_version: 1
+            request_id: 29925c8f-f466-43fc-914c-f81141a82354
+            job_id: 46c682b1-f800-4fbb-8244-37953a449de0
+            run_id: 3271e8e2-97ba-4ba8-8f93-bfabaa78414e
+            lot_id: LOT-001
+            unit_id: MOSFET-001
+            attempt: 1
+            camera_id: aoi-camera-1
+            frame_id: 1042
+            api_token: "환경변수 값; 로그에 출력 금지"
+    AoiInspectionAccepted:
+      name: aoi.inspection.accepted
+      contentType: application/json
+      payload:
+        type: object
+        required: [type, schema_version, request_id, job_id, frame_id, status]
+        properties:
+          type: {type: string, const: aoi.inspection.accepted}
+          schema_version: {type: integer, const: 1}
+          request_id: {type: string, format: uuid}
+          job_id: {type: string, format: uuid}
+          frame_id: {type: integer, minimum: 1}
+          status: {type: string, enum: [queued, running, succeeded]}
+    AoiInspectionRejected:
+      name: aoi.inspection.rejected
+      contentType: application/json
+      payload:
+        type: object
+        required: [type, schema_version, error_code]
+        properties:
+          type: {type: string, const: aoi.inspection.rejected}
+          schema_version: {type: integer, const: 1}
+          error_code: {type: string, enum: [unauthorized, invalid_request, stale_frame, queue_full]}
+    AoiInspectionCompleted:
+      name: aoi.inspection.completed
+      title: AOI 결과 메타데이터
+      contentType: application/json
+      payload: {$ref: "#/components/schemas/AoiDirectResult"}
+    AoiAnnotatedJpeg:
+      name: aoi.annotated.jpeg
+      title: AOI 박스 표시 이미지
+      contentType: image/jpeg
+      payload:
+        type: string
+        format: binary
+      x-frame-order: AoiInspectionCompleted 바로 다음 binary frame
+    AoiInspectionFailed:
+      name: aoi.inspection.failed
+      contentType: application/json
+      payload:
+        type: object
+        required: [type, schema_version, error_code]
+        properties:
+          type: {type: string, const: aoi.inspection.failed}
+          schema_version: {type: integer, const: 1}
+          error_code: {type: string, const: invalid_or_unavailable_input}
+    GatewayInspectionRequested:
+      name: inspection.requested
+      payload:
+        allOf:
+          - $ref: "#/components/schemas/InspectionRequest"
+          - type: object
+            required: [type]
+            properties: {type: {type: string, const: inspection.requested}}
+    GatewaySurrogateRequested:
+      name: surrogate.requested
+      payload:
+        allOf:
+          - $ref: "#/components/schemas/SurrogateJobRequest"
+          - type: object
+            required: [type]
+            properties: {type: {type: string, const: surrogate.requested}}
+    RequestAccepted:
+      name: request.accepted
+      payload:
+        type: object
+        required: [type, request_id, job_id, status]
+        properties:
+          type: {type: string, const: request.accepted}
+          request_id: {type: string, format: uuid}
+          job_id: {type: string, format: uuid}
+          status: {type: string}
+    RequestRejected:
+      name: request.rejected
+      payload:
+        type: object
+        required: [type, code]
+        properties:
+          type: {type: string, const: request.rejected}
+          code:
+            oneOf:
+              - {type: string, enum: [unsupported_type, invalid_request]}
+              - {type: integer, enum: [400, 409, 503]}
+          detail: {}
+    StoredEvent:
+      name: committed.event
+      payload: {$ref: "#/components/schemas/StoredEvent"}
+    CorrectionCommand:
+      name: correction.command
+      payload:
+        allOf:
+          - $ref: "#/components/schemas/CorrectionCommandBody"
+          - type: object
+            required: [type]
+            properties: {type: {type: string, const: correction.command}}
+    CorrectionApplied:
+      name: correction.applied
+      payload:
+        type: object
+        required: [type, command_id, proposal_id, run_id, effective_from_lot]
+        properties:
+          type: {type: string, const: correction.applied}
+          command_id: {type: string, format: uuid}
+          proposal_id: {type: string, format: uuid}
+          run_id: {type: string, format: uuid}
+          effective_from_lot: {type: string}
+    ApplicationAck:
+      name: application.ack
+      payload:
+        type: object
+        required: [type]
+        properties:
+          type: {type: string, const: application.ack}
+          command_id: {type: string, format: uuid}
+          status: {type: string}
+    ApplicationRejected:
+      name: application.rejected
+      payload:
+        type: object
+        required: [type]
+        properties: {type: {type: string, const: application.rejected}}
+    RosAoiRequest:
+      name: ros.aoi.request
+      contentType: application/json
+      payload: {$ref: "#/components/schemas/RosAoiRequestPayload"}
+    RosSurrogateRequest:
+      name: ros.surrogate.request
+      contentType: application/json
+      payload: {$ref: "#/components/schemas/RosSurrogateRequestPayload"}
+    RosEvent:
+      name: ros.event
+      contentType: application/json
+      payload: {$ref: "#/components/schemas/RosEventEnvelope"}
+    RosEventAck:
+      name: ros.event.ack
+      contentType: application/json
+      payload: {$ref: "#/components/schemas/RosEventAckPayload"}
+    RosCorrectionCommand:
+      name: ros.correction.command
+      contentType: application/json
+      payload:
+        allOf:
+          - $ref: "#/components/schemas/CorrectionCommandBody"
+          - type: object
+            required: [command_mac]
+            properties:
+              command_mac: {type: string, pattern: "^[0-9a-f]{64}$", writeOnly: true}
+
+  schemas:
+    CameraPreviewSubscribe:
+      type: object
+      additionalProperties: false
+      required: [type, schema_version, camera_id, api_token]
+      properties:
+        type: {type: string, const: camera.preview.subscribe}
+        schema_version: {type: integer, const: 1}
+        camera_id: {type: string}
+        api_token: {type: string, writeOnly: true}
+        preferred_width: {type: integer, minimum: 1, maximum: 1280, default: 1280}
+        preferred_height: {type: integer, minimum: 1, maximum: 720, default: 720}
+        preferred_fps: {type: integer, minimum: 1, maximum: 5, default: 5}
+    CameraPreviewSubscribed:
+      type: object
+      required: [type, schema_version, camera_id, width, height, fps, encoding]
+      properties:
+        type: {type: string, const: camera.preview.subscribed}
+        schema_version: {type: integer, const: 1}
+        camera_id: {type: string}
+        width: {type: integer}
+        height: {type: integer}
+        fps: {type: integer}
+        encoding: {type: string, const: jpeg}
+    CameraPreviewFrame:
+      type: object
+      required: [type, schema_version, camera_id, frame_id, captured_at, width, height, mime_type, byte_length, binary_frame_follows]
+      properties:
+        type: {type: string, const: camera.preview.frame}
+        schema_version: {type: integer, const: 1}
+        camera_id: {type: string}
+        frame_id: {type: integer, minimum: 1}
+        captured_at: {type: string, format: date-time}
+        width: {type: integer, minimum: 1}
+        height: {type: integer, minimum: 1}
+        mime_type: {type: string, const: image/jpeg}
+        byte_length: {type: integer, minimum: 1}
+        binary_frame_follows: {type: boolean, const: true}
+    InspectionRequest:
+      type: object
+      additionalProperties: false
+      required: [schema_version, request_id, run_id, lot_id, unit_id]
+      properties:
+        schema_version: {type: integer, const: 1}
+        request_id: {type: string, format: uuid}
+        run_id: {type: string, format: uuid}
+        lot_id: {type: string, minLength: 1}
+        unit_id: {type: string, minLength: 1}
+        stage_id: {type: string, default: final_aoi}
+        stage_attempt: {type: integer, minimum: 1, default: 1}
+        expected_stage_version: {type: [integer, "null"], minimum: 0}
+        fixture_name: {type: [string, "null"], pattern: "^[^/\\\\]+$"}
+    SurrogateJobRequest:
+      type: object
+      additionalProperties: false
+      required: [schema_version, request_id, run_id, lot_id, unit_id, input_payload]
+      properties:
+        schema_version: {type: integer, const: 1}
+        request_id: {type: string, format: uuid}
+        run_id: {type: string, format: uuid}
+        lot_id: {type: string, minLength: 1}
+        unit_id: {type: string, minLength: 1}
+        stage_id: {type: string, default: electrical}
+        stage_attempt: {type: integer, minimum: 1, default: 1}
+        model_contract_version: {type: string, const: fab-ml-v1}
+        input_payload: {type: object}
+    AoiDirectRequest:
+      type: object
+      additionalProperties: true
+      required: [type, schema_version, request_id, job_id, run_id, lot_id, unit_id, attempt, camera_id, frame_id, api_token]
+      properties:
+        type: {type: string, const: aoi.inspection.requested}
+        schema_version: {type: integer, const: 1}
+        request_id: {type: string, format: uuid}
+        job_id: {type: string, format: uuid}
+        run_id: {type: string, format: uuid}
+        lot_id: {type: string, minLength: 1}
+        unit_id: {type: string, minLength: 1}
+        attempt: {type: integer, minimum: 1}
+        camera_id: {type: string, minLength: 1}
+        frame_id: {type: integer, minimum: 1}
+        api_token: {type: string, writeOnly: true}
+    Detection:
+      type: object
+      required: [class_id, class_name, confidence, bbox_xyxy]
+      properties:
+        class_id: {type: integer, minimum: 0}
+        class_name: {type: string}
+        confidence: {type: number, minimum: 0, maximum: 1}
+        bbox_xyxy:
+          type: array
+          minItems: 4
+          maxItems: 4
+          items: {type: number}
+    AoiImage:
+      type: object
+      required: [image_id, frame_role, mime_type, file_name, byte_length, sha256, width, height, jetson_path, binary_frame_follows]
+      properties:
+        image_id: {type: string, format: uuid}
+        frame_role: {type: string, const: annotated}
+        mime_type: {type: string, const: image/jpeg}
+        file_name: {type: string}
+        byte_length: {type: integer, minimum: 1, maximum: 67108864}
+        sha256: {type: string, pattern: "^[0-9a-f]{64}$"}
+        width: {type: integer, minimum: 1}
+        height: {type: integer, minimum: 1}
+        jetson_path: {type: string, description: Jetson 절대 경로이며 공개 URL이 아님}
+        binary_frame_follows: {type: boolean, const: true}
+    AoiDirectResult:
+      type: object
+      required: [type, schema_version, message_id, request_id, job_id, run_id, lot_id, unit_id, attempt, device_id, result_origin, verdict, defect_detected, processing_ms, thresholds, parts, defects, image, occurred_at, persistence_status]
+      properties:
+        type: {type: string, const: aoi.inspection.completed}
+        schema_version: {type: integer, const: 1}
+        message_id: {type: string, format: uuid}
+        request_id: {type: string, format: uuid}
+        job_id: {type: string, format: uuid}
+        run_id: {type: string, format: uuid}
+        lot_id: {type: string}
+        unit_id: {type: string}
+        attempt: {type: integer, minimum: 1}
+        device_id: {type: string}
+        result_origin: {type: string, enum: [mock, prod]}
+        verdict: {type: string, enum: [pass, fail]}
+        defect_detected: {type: boolean}
+        processing_ms: {type: number, minimum: 0}
+        thresholds: {type: object}
+        parts: {type: array, items: {$ref: "#/components/schemas/Detection"}}
+        defects: {type: array, items: {$ref: "#/components/schemas/Detection"}}
+        image: {$ref: "#/components/schemas/AoiImage"}
+        occurred_at: {type: string, format: date-time}
+        persistence_status:
+          type: string
+          enum: [queued, disabled]
+          description: queued는 Jetson SQLite outbox 저장 완료이며 Aiven commit 완료가 아님
+    RosAoiRequestPayload:
+      type: object
+      required: [schema_version, task_type, job_id, request_id, run_id, lot_id, attempt]
+      properties:
+        schema_version: {type: integer, const: 1}
+        task_type: {type: string, const: aoi}
+        job_id: {type: string, format: uuid}
+        request_id: {type: string, format: uuid}
+        run_id: {type: string, format: uuid}
+        lot_id: {type: string}
+        attempt: {type: integer, minimum: 1}
+        fixture_name: {type: string}
+    RosSurrogateRequestPayload:
+      allOf:
+        - $ref: "#/components/schemas/RosAoiRequestPayload"
+        - type: object
+          properties:
+            task_type: {type: string, const: surrogate}
+            model_contract_version: {type: string, const: fab-ml-v1}
+            input_payload: {type: object}
+            surrogate_mode: {type: string, enum: [mock, prod]}
+    RosEventEnvelope:
+      type: object
+      additionalProperties: false
+      required: [schema_version, event_id, run_id, event_type, source, severity, payload, occurred_at]
+      properties:
+        schema_version: {type: integer, minimum: 1}
+        event_id: {type: string, format: uuid}
+        run_id: {type: string, format: uuid}
+        event_type:
+          type: string
+          examples: [aoi.inspection.completed, aoi.inspection.failed, surrogate.completed, correction.applied]
+        source: {type: string, examples: [jetson.aoi, jetson.surrogate, jetson.virtual_lot]}
+        severity: {type: string, enum: [debug, info, warning, error, critical]}
+        correlation_id: {type: [string, "null"]}
+        causation_id: {type: [string, "null"], format: uuid}
+        payload: {type: object}
+        occurred_at: {type: string, format: date-time}
+    RosEventAckPayload:
+      type: object
+      required: [event_id, run_id, status]
+      properties:
+        event_id: {type: string, format: uuid}
+        run_id: {type: string, format: uuid}
+        sequence: {type: [integer, "null"], minimum: 1}
+        status: {type: string, enum: [committed, dead_lettered]}
+    StoredEvent:
+      allOf:
+        - $ref: "#/components/schemas/RosEventEnvelope"
+        - type: object
+          required: [sequence, received_at, unity_mode, approval_allowed]
+          properties:
+            sequence: {type: integer, minimum: 1}
+            received_at: {type: string, format: date-time}
+            unity_mode: {type: string, enum: [mock, prod]}
+            approval_allowed: {type: boolean}
+            correction: {type: object}
+    TcadCandidateEventPayload:
+      type: object
+      additionalProperties: true
+      required: [request_id, job_id, proposal_id, tcad_request_id, candidate_index, status]
+      properties:
+        request_id: {type: string, format: uuid, description: Unity 원본 진단 요청 ID}
+        job_id: {type: string, format: uuid}
+        proposal_id: {type: string, format: uuid}
+        tcad_request_id: {type: string, format: uuid, description: 외부 TCAD 접수와 조회 키}
+        candidate_index: {type: integer, minimum: 0}
+        status:
+          type: string
+          enum: [queued, running, succeeded, failed, cancelled, expired, review_required]
+        progress: {type: object}
+        result_payload: {type: object}
+        error_code: {type: string}
+        error_message: {type: string}
+      description: TCAD endpoint와 X-Fab-Token은 Unity payload에 포함하지 않는다.
+    TcadBatchEventPayload:
+      type: object
+      additionalProperties: true
+      required: [request_id, job_id, proposal_id, status, candidates, succeeded_count]
+      properties:
+        request_id: {type: string, format: uuid}
+        job_id: {type: string, format: uuid}
+        proposal_id: {type: string, format: uuid}
+        status: {type: string, enum: [review_required, failed, cancelled]}
+        candidates:
+          type: array
+          items:
+            type: object
+            required: [tcad_request_id, candidate_index, status]
+            properties:
+              tcad_request_id: {type: string, format: uuid}
+              candidate_index: {type: integer, minimum: 0}
+              status: {type: string}
+        succeeded_count: {type: integer, minimum: 0}
+    VectorX:
+      type: object
+      additionalProperties: false
+      required: [oxide_thickness, body_dose, diffusion_time, epi_doping]
+      properties:
+        oxide_thickness: {type: number}
+        body_dose: {type: number}
+        diffusion_time: {type: number}
+        epi_doping: {type: number}
+    CorrectionCommandBody:
+      type: object
+      required: [command_id, proposal_id, run_id, scope, effective_from_lot, x_candidate, x_current]
+      properties:
+        command_id: {type: string, format: uuid}
+        proposal_id: {type: string, format: uuid}
+        run_id: {type: string, format: uuid}
+        scope: {type: string, const: simulation}
+        effective_from_lot: {type: string, minLength: 1}
+        x_candidate: {$ref: "#/components/schemas/VectorX"}
+        x_current: {$ref: "#/components/schemas/VectorX"}
