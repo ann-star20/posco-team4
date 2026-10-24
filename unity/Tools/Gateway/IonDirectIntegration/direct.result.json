@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "type": "process_analysis",
+  "message_id": "REQ-1cc32b2fafff450ca187d88df9d995f8-result",
+  "payload": {
+    "lot_id": "LOT-UNITY-ION-DIRECT-TEST",
+    "request_id": "REQ-1cc32b2fafff450ca187d88df9d995f8",
+    "run_id": "REQ-1cc32b2fafff450ca187d88df9d995f8",
+    "proposal_id": "REQ-1cc32b2fafff450ca187d88df9d995f8-proposal",
+    "baseline_version": "tcad-gp-c02d4f1724f0",
+    "model_version": "agent-4a48af6681a3",
+    "data_source": "synthetic",
+    "delivery": "computed",
+    "mode": "gp_tabpfn",
+    "decision": "ambiguous",
+    "decided": false,
+    "top_cause": "도즈+에피+산화막",
+    "top_probability": 0.47243971285226427,
+    "dose_factor": 0.955,
+    "oxide_factor": 0.97,
+    "estimated_dose": 1.057477710858654,
+    "estimated_epi": 1.2979341848225412,
+    "estimated_oxide": 1.09589518424716,
+    "basic_candidates": [
+      {
+        "name": "정상",
+        "probability": 2.083295277672499e-30
+      },
+      {
+        "name": "도즈",
+        "probability": 8.682740954765353e-22
+      },
+      {
+        "name": "에피",
+        "probability": 8.889464177779503e-06
+      },
+      {
+        "name": "도즈+에피",
+        "probability": 0.23625622476685632
+      },
+      {
+        "name": "산화막",
+        "probability": 1.36866322704984e-31
+      },
+      {
+        "name": "도즈+산화막",
+        "probability": 4.8819686688672736e-05
+      },
+      {
+        "name": "에피+산화막",
+        "probability": 0.2890474094975517
+      },
+      {
+        "name": "도즈+에피+산화막",
+        "probability": 0.47463865658472454
+      }
+    ],
+    "recommendation": "웨이퍼 1장 → 4장",
+    "warning": "에피가 벗어났을 가능성이 높다: 에피는 제어할 수 없어 BV 는 보정되지 않는다",
+    "duration_seconds": 25.84201109300011,
+    "tcad_status": "not_run",
+    "applied": false,
+    "generated_at_ms": 1792643996931,
+    "sent_at_ms": 1792643996931,
+    "input": {
+      "request_id": "REQ-1cc32b2fafff450ca187d88df9d995f8",
+      "lot_id": "LOT-UNITY-ION-DIRECT-TEST",
+      "baseline_version": "tcad-gp-c02d4f1724f0",
+      "data_source": "synthetic",
+      "n_wafers": 1,
+      "sent_at_ms": 1792644003854,
+      "units": {
+        "vth": "V",
+        "gm": "A/V/um",
+        "id4v": "A/um",
+        "bv": "V"
+      },
+      "measurement": {
+        "vth": 2.487986270022883,
+        "gm": 4.369999999999996e-06,
+        "id4v": 4.846e-06,
+        "bv": 37.23913520855404
+      }
+    }
+  },
+  "source": "process_ai",
+  "target": "unity",
+  "received_at_ms": 1792644033180
+}

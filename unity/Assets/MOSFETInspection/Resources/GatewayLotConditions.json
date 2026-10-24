@@ -1,0 +1,13 @@
+{
+  "lots": [
+    {
+      "lot_id": "LOT-001",
+      "body_dose": 7700000000000,
+      "epi_doping": 17000000000000000,
+      "oxide_reference_um": 0.06,
+      "dose_unit": "cm^-2",
+      "epi_unit": "cm^-3",
+      "source": "gp-transform-v1 reference confirmed by Gateway input_ratios; CSV simulation ratios applied per inspection, not equipment measurements"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+*.local.json
+known_hosts
+*.log
+VirtualFabML_*/
+__pycache__/

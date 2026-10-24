@@ -1,0 +1,108 @@
+{
+  "events": [
+    {
+      "sequence": 42,
+      "event_id": "3d20eb4c-8794-5bfb-8596-9ef857377436",
+      "event_type": "surrogate.completed",
+      "source": "jetson.surrogate",
+      "severity": "info",
+      "payload": {
+        "job_id": "b4b3bb00-792e-4727-bc86-4b0642687d0d",
+        "lot_id": "LOT-001",
+        "run_id": "8eacb6a1-f651-4e96-864c-047cf7df3d8c",
+        "attempt": 1,
+        "response": {
+          "error": {
+            "code": "OUT_OF_DOMAIN",
+            "message": "입력이 서로게이트 학습 영역 밖이다. 단위(도즈 cm^-2, 에피 cm^-3, 산화막 um)와 값을 확인하라."
+          },
+          "job_id": "b4b3bb00-792e-4727-bc86-4b0642687d0d",
+          "status": "failed",
+          "metadata": {
+            "model": {
+              "name": "mosfet-gp-surrogate",
+              "device": "cpu",
+              "runtime": "python-3.10",
+              "version": "2026-10-18",
+              "precision": "float64",
+              "git_commit": null,
+              "artifact_hash": "sha256:f674b7a536f6a42d7e6dbf4b648fc5465de5f7fefea653280177c247dcdf7eeb",
+              "training_data_version": "tcad-train-8d189967db61"
+            },
+            "stages": [
+              {
+                "stage": "domain_check",
+                "status": "failed",
+                "error_code": "OUT_OF_DOMAIN",
+                "duration_ms": 2.23
+              }
+            ],
+            "in_domain": false,
+            "timing_ms": {
+              "service_total": 2.23
+            },
+            "input_ratios": {
+              "epi": 1.0,
+              "tox": 1.643667,
+              "dose": 1.0
+            },
+            "input_transform_version": "gp-transform-v1"
+          },
+          "error_code": "OUT_OF_DOMAIN",
+          "request_id": "e71dc350-bb13-440a-9565-08be15a0faed",
+          "error_message": "입력이 서로게이트 학습 영역 밖이다. 단위(도즈 cm^-2, 에피 cm^-3, 산화막 um)와 값을 확인하라.",
+          "model_version": "mosfet-gp-2026-10-18",
+          "result_origin": "prod",
+          "tcad_proposal": null,
+          "result_payload": null,
+          "anomaly_detected": null,
+          "model_contract_version": "fab-ml-v1"
+        },
+        "task_type": "surrogate",
+        "request_id": "e71dc350-bb13-440a-9565-08be15a0faed",
+        "input_payload": {
+          "provenance": {
+            "epi_unit": "cm^-3",
+            "dose_unit": "cm^-2",
+            "epi_ratio": 1.0,
+            "sample_id": "B081",
+            "csv_sha256": "1a6828a87faba5f93568b1e9a2b4f19b80a75d019505fc536390202e02d2df81",
+            "dose_ratio": 1.0,
+            "oxide_unit": "um",
+            "data_source": "simulation",
+            "oxide_ratio": 1.0,
+            "inspection_id": "5a8ca413a5924058a8ab90ab66cbc351",
+            "process_origin": "registered_lot_conditions_and_completed_inspection",
+            "condition_source": "team_provided_request_2026-10-21; configured LOT conditions, not equipment measurements",
+            "electrical_source": "TCAD",
+            "scene_readings_nm": [
+              98.6199951171875,
+              98.6199951171875,
+              98.6199951171875
+            ],
+            "scene_thickness_origin": "simulation"
+          },
+          "requested_outputs": [
+            "vth",
+            "gm",
+            "id_on",
+            "bv"
+          ],
+          "process_parameters": {
+            "body_dose": 7700000000000.0,
+            "epi_doping": 17000000000000000,
+            "oxide_thickness": 0.0986199951171875
+          }
+        },
+        "schema_version": 1,
+        "surrogate_mode": "prod",
+        "model_contract_version": "fab-ml-v1"
+      },
+      "occurred_at": "2026-10-21T17:27:20.783035+09:00",
+      "received_at": "2026-10-21T17:27:23.640073+09:00",
+      "run_id": "8eacb6a1-f651-4e96-864c-047cf7df3d8c",
+      "unity_mode": "mock",
+      "approval_allowed": false
+    }
+  ]
+}

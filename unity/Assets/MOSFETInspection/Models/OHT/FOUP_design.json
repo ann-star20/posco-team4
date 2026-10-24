@@ -1,0 +1,10 @@
+{
+  "wafer_count": 25,
+  "wafer_diameter_m": 0.3,
+  "case_dimensions_m": [
+    0.4,
+    0.38,
+    0.386
+  ],
+  "note": "Concept FOUP for OHT visualization. 300mm wafer disks; case and interfaces approximate, not SEMI-certified dimensions."
+}

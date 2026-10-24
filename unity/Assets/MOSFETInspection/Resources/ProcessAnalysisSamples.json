@@ -1,0 +1,53 @@
+{
+  "baseline_version": "tcad-gp-c02d4f1724f0",
+  "cases": [
+    {
+      "name": "normal",
+      "title": "정상",
+      "n_wafers": 100,
+      "has_bv": true,
+      "measurement": {
+        "vth": 2.2600605374403955,
+        "gm": 4.599146017595049e-06,
+        "id4v": 5.207198932926454e-06,
+        "bv": 41.11501514962465
+      }
+    },
+    {
+      "name": "oxide_plus15",
+      "title": "산화막 +15%",
+      "n_wafers": 5,
+      "has_bv": false,
+      "measurement": {
+        "vth": 2.630093106512087,
+        "gm": 4.064140243034591e-06,
+        "id4v": 4.172897685254292e-06,
+        "bv": 0
+      }
+    },
+    {
+      "name": "epi_minus40_without_bv",
+      "title": "에피 -40% · BV 없음",
+      "n_wafers": 5,
+      "has_bv": false,
+      "measurement": {
+        "vth": 2.3519243356514483,
+        "gm": 4.203820040341547e-06,
+        "id4v": 4.2974100801044695e-06,
+        "bv": 0
+      }
+    },
+    {
+      "name": "epi_minus40_with_bv",
+      "title": "에피 -40% · BV 있음",
+      "n_wafers": 5,
+      "has_bv": true,
+      "measurement": {
+        "vth": 2.3519243356514483,
+        "gm": 4.203820040341547e-06,
+        "id4v": 4.2974100801044695e-06,
+        "bv": 57.16967488291903
+      }
+    }
+  ]
+}

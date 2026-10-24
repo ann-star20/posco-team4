@@ -1,0 +1,199 @@
+{
+  "sequence": 60,
+  "event_id": "919fe538-c9b3-596e-a846-9661759f9742",
+  "event_type": "surrogate.completed",
+  "source": "jetson.surrogate",
+  "severity": "info",
+  "payload": {
+    "job_id": "b596a4bc-87e7-44cb-94a7-cb812fea08f5",
+    "lot_id": "LOT-UNITY-ION-INTEGRATION-TEST",
+    "run_id": "9c6137ea-5a91-4f20-8a03-2e14602b9434",
+    "attempt": 1,
+    "response": {
+      "job_id": "b596a4bc-87e7-44cb-94a7-cb812fea08f5",
+      "status": "succeeded",
+      "metadata": {
+        "spec": {
+          "bv_min": 40.0,
+          "status": "datasheet_AOI4184",
+          "vth_max": 2.6,
+          "vth_min": 1.7
+        },
+        "model": {
+          "name": "mosfet-gp-surrogate",
+          "device": "cpu",
+          "runtime": "python-3.10",
+          "version": "2026-10-18",
+          "precision": "float64",
+          "git_commit": null,
+          "artifact_hash": "sha256:f674b7a536f6a42d7e6dbf4b648fc5465de5f7fefea653280177c247dcdf7eeb",
+          "training_data_version": "tcad-train-8d189967db61"
+        },
+        "sigma": {
+          "bv": 0.00998573437138568,
+          "gm": 0.026680006775949627,
+          "vth": 0.0014256441100678667,
+          "id_on": 0.004289026267404809
+        },
+        "units": {
+          "bv": "V",
+          "gm": "uS/um",
+          "vth": "V",
+          "id_on": "uA/um"
+        },
+        "models": {
+          "bv": "gp-bv-raw-input",
+          "id_on": "gp-stage2-vth-input",
+          "vth_gm": "gp-stage1-matern52-ard"
+        },
+        "stages": [
+          {
+            "stage": "request_validation",
+            "status": "succeeded",
+            "duration_ms": 0.155
+          },
+          {
+            "stage": "inference",
+            "status": "succeeded",
+            "duration_ms": 4.425
+          },
+          {
+            "stage": "postprocessing",
+            "status": "succeeded",
+            "duration_ms": 0.096
+          }
+        ],
+        "in_domain": true,
+        "timing_ms": {
+          "service_total": 4.75,
+          "postprocessing": 0.096,
+          "inference_total": 4.425,
+          "request_validation": 0.155
+        },
+        "input_ratios": {
+          "epi": 1.0,
+          "tox": 1.0,
+          "dose": 1.0
+        },
+        "id_conditions": {
+          "vds_v": 0.1,
+          "vgs_v": 4.0,
+          "temperature_c": 26.85
+        },
+        "processing_ms": 4.75,
+        "input_transform_version": "gp-transform-v1"
+      },
+      "request_id": "b72ffebb-5fa6-4256-9576-79bc4f86883f",
+      "model_version": "mosfet-gp-2026-10-18",
+      "result_origin": "prod",
+      "tcad_proposal": null,
+      "result_payload": {
+        "bv": 41.11501514951402,
+        "gm": 4.599146017602794,
+        "vth": 2.260060537596672,
+        "id_on": 5.207198932949856
+      },
+      "anomaly_detected": false,
+      "model_contract_version": "fab-ml-v1"
+    },
+    "task_type": "surrogate",
+    "request_id": "b72ffebb-5fa6-4256-9576-79bc4f86883f",
+    "input_payload": {
+      "provenance": {
+        "tcad": {
+          "spec": {
+            "bv_min": 40.0,
+            "vth_max": 2.6,
+            "vth_min": 1.7,
+            "gm_id_rule": "diagnostic_only_no_acceptance_limits",
+            "comparison_tolerance": 1E-06
+          },
+          "applied": false,
+          "purpose": "tcad_candidate_prediction_for_gateway_forwarding",
+          "warning": "",
+          "approved": false,
+          "recipient": "gateway_team",
+          "tcad_setup": {
+            "bias": {
+              "vd_v": 0.1,
+              "vg_sweep_v": [
+                0.0,
+                4.0
+              ]
+            },
+            "deck": "최종_trench_template.in",
+            "fixed": {
+              "diffusion_temp_c": 1100,
+              "diffusion_time_min": 30,
+              "source_drain_doping": "arsenic 5e15 cm^-2"
+            },
+            "units": {
+              "bv": "V",
+              "gm": "uS/um",
+              "vth": "V",
+              "id_on": "uA/um"
+            },
+            "athena_atlas": "DeckBuild 5.0.10.R / Atlas 5.28.1.R",
+            "bv_criterion": "leakage 1e-9 A/um",
+            "id_on_definition": "Id at Vg=4.0 V",
+            "width_normalization": "per 1 um of device width",
+            "device_temperature_k": 300.0
+          },
+          "dose_factor": 0.0,
+          "proposal_id": "",
+          "review_note": "",
+          "oxide_factor": 0.0,
+          "diagnosis_mode": "",
+          "diagnosis_model": "",
+          "diagnosis_source": "separate_legacy_diagnostic_worker",
+          "estimated_before": {
+            "body_dose": 0.0,
+            "epi_doping": 0.0,
+            "oxide_thickness": 0.0
+          },
+          "exploratory_only": false,
+          "cause_probability": 0.0,
+          "legacy_top_cause_ko": "",
+          "diagnosis_request_id": "",
+          "parent_gateway_job_id": "",
+          "parent_gateway_run_id": "",
+          "predicted_outputs_source": "matching surrogate.completed payload.response.result_payload; not a TCAD result",
+          "parent_gateway_request_id": ""
+        },
+        "epi_unit": "cm^-3",
+        "dose_unit": "cm^-2",
+        "sample_id": "",
+        "csv_sha256": "",
+        "oxide_unit": "um",
+        "data_source": "simulation",
+        "equipment_id": "IMP-01",
+        "inspection_id": "214946c57d93462c86ec0577a89b945a",
+        "process_origin": "completed_ion_dose_and_registered_lot_context",
+        "condition_source": "integration test of TCAD reference 7.7e12 / 1.7e16 / 0.06 um; simulated input, not a Unity runtime inspection or hardware measurement",
+        "electrical_source": "surrogate_prediction_not_measurement",
+        "scene_readings_nm": [],
+        "completed_dose_cm2": 7700000000000.0,
+        "scene_thickness_origin": "simulation"
+      },
+      "requested_outputs": [
+        "vth",
+        "gm",
+        "id_on",
+        "bv"
+      ],
+      "process_parameters": {
+        "body_dose": 7700000000000.0,
+        "epi_doping": 17000000000000000,
+        "oxide_thickness": 0.06
+      }
+    },
+    "schema_version": 1,
+    "surrogate_mode": "prod",
+    "model_contract_version": "fab-ml-v1"
+  },
+  "occurred_at": "2026-10-22T10:43:17.76055+09:00",
+  "received_at": "2026-10-22T10:43:20.710762+09:00",
+  "run_id": "9c6137ea-5a91-4f20-8a03-2e14602b9434",
+  "unity_mode": "mock",
+  "approval_allowed": false
+}

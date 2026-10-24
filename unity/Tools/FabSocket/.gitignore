@@ -1,0 +1,6 @@
+.deps/
+__pycache__/
+*.log
+*.pid
+server.local.json
+*.pem

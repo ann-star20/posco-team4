@@ -1,0 +1,55 @@
+{
+  "events": [
+    {
+      "sequence": 39,
+      "event_id": "e181a497-82e0-54d3-8f07-19e39b7fb96e",
+      "event_type": "surrogate.completed",
+      "source": "jetson.surrogate",
+      "severity": "info",
+      "payload": {
+        "job_id": "ab90ce98-877d-4022-9780-b77055f8347c",
+        "lot_id": "LOT-SURROGATE-TEST",
+        "run_id": "0ec2d043-e626-4bdf-a2b7-3bed42d4941a",
+        "attempt": 1,
+        "response": {
+          "job_id": "ab90ce98-877d-4022-9780-b77055f8347c",
+          "status": "succeeded",
+          "metadata": {
+            "note": "통신 시험용 고정값. 물리 모델 예측 아님.",
+            "id_conditions": {
+              "vds_v": 1,
+              "vgs_v": 4,
+              "temperature_c": 25
+            },
+            "representation": "synthetic_normalized_fixture"
+          },
+          "request_id": "102f051a-dd8b-412a-9dfd-c8db9d7b463f",
+          "model_version": "mock-gp-v1",
+          "result_origin": "mock",
+          "tcad_proposal": null,
+          "result_payload": {
+            "bv": 1.0,
+            "gm": 1.0,
+            "id": 1.0,
+            "vth": 1.0
+          },
+          "anomaly_detected": false,
+          "model_contract_version": "fab-ml-v1"
+        },
+        "task_type": "surrogate",
+        "request_id": "102f051a-dd8b-412a-9dfd-c8db9d7b463f",
+        "input_payload": {
+          "scenario": "normal"
+        },
+        "schema_version": 1,
+        "surrogate_mode": "mock",
+        "model_contract_version": "fab-ml-v1"
+      },
+      "occurred_at": "2026-10-21T10:18:11.069244+09:00",
+      "received_at": "2026-10-21T10:18:13.885293+09:00",
+      "run_id": "0ec2d043-e626-4bdf-a2b7-3bed42d4941a",
+      "unity_mode": "mock",
+      "approval_allowed": false
+    }
+  ]
+}

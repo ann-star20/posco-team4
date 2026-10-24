@@ -1,0 +1,22 @@
+{
+  "scenario_id": "film-high-65.4-tcad-aligned-demo",
+  "baseline_version": "tcad-gp-c02d4f1724f0",
+  "target_nm": 60.0,
+  "lower_nm": 57.0,
+  "upper_nm": 63.0,
+  "readings_nm": [
+    65.16,
+    65.46,
+    65.58
+  ],
+  "oxide_ratio": 1.09,
+  "n_wafers": 5,
+  "has_bv": false,
+  "measurement": {
+    "vth": 2.482527064056283,
+    "gm": 4.2640415786603266e-06,
+    "id4v": 4.587095440463397e-06,
+    "bv": 42.2475432384252
+  },
+  "provenance": "Paired synthetic scenario: scene thickness deviation and GP forward prediction. Scene nm baseline is illustrative; not physical calibration or measured electrical data."
+}

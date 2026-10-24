@@ -1,0 +1,115 @@
+{
+  "type": "diagnosis.requested",
+  "schema_version": 1,
+  "request_id": "548d8c70-5d31-41d0-ae4a-1c87b364db3e",
+  "run_id": "f47418b8-c034-465c-9207-b9034ac62935",
+  "lot_id": "LOT-UNITY-ION-DIRECT-TEST",
+  "unit_id": "SIM-IMP01-INTEGRATION",
+  "stage_id": "ion_diagnosis",
+  "stage_attempt": 1,
+  "model_contract_version": "fab-ml-v1",
+  "input_payload": {
+    "measurements": {
+      "vth": 2.487986270022883,
+      "gm": 4.3699999999999966,
+      "id_on": 4.846,
+      "bv": 37.23913520855404
+    },
+    "n_wafers": 1,
+    "refine": false,
+    "provenance": {
+      "data_source": "jetson_csv_test",
+      "equipment_id": "IMP-01",
+      "electrical_source": "tcad_csv_not_measurement",
+      "inspection_id": "DIRECT-INTEGRATION-8cd0dd5f718a49159765a5bb70b27a68",
+      "sample_id": "B122",
+      "csv_sha256": "1a6828a87faba5f93568b1e9a2b4f19b80a75d019505fc536390202e02d2df81",
+      "vth_unit": "V",
+      "gm_unit": "uS/um",
+      "id_on_unit": "uA/um",
+      "bv_unit": "V",
+      "archive_purpose": "preserve_jetson_direct_result_in_committed_request; gateway_rediagnosis_is_separate",
+      "direct_diagnosis": {
+        "lot_id": "LOT-UNITY-ION-DIRECT-TEST",
+        "request_id": "REQ-1cc32b2fafff450ca187d88df9d995f8",
+        "run_id": "REQ-1cc32b2fafff450ca187d88df9d995f8",
+        "proposal_id": "REQ-1cc32b2fafff450ca187d88df9d995f8-proposal",
+        "baseline_version": "tcad-gp-c02d4f1724f0",
+        "model_version": "agent-4a48af6681a3",
+        "data_source": "synthetic",
+        "delivery": "computed",
+        "mode": "gp_tabpfn",
+        "decision": "ambiguous",
+        "decided": false,
+        "top_cause": "도즈+에피+산화막",
+        "top_probability": 0.47243971285226427,
+        "dose_factor": 0.955,
+        "oxide_factor": 0.97,
+        "estimated_dose": 1.057477710858654,
+        "estimated_epi": 1.2979341848225412,
+        "estimated_oxide": 1.09589518424716,
+        "basic_candidates": [
+          {
+            "name": "정상",
+            "probability": 2.083295277672499e-30
+          },
+          {
+            "name": "도즈",
+            "probability": 8.682740954765353e-22
+          },
+          {
+            "name": "에피",
+            "probability": 8.889464177779503e-06
+          },
+          {
+            "name": "도즈+에피",
+            "probability": 0.23625622476685632
+          },
+          {
+            "name": "산화막",
+            "probability": 1.36866322704984e-31
+          },
+          {
+            "name": "도즈+산화막",
+            "probability": 4.8819686688672736e-05
+          },
+          {
+            "name": "에피+산화막",
+            "probability": 0.2890474094975517
+          },
+          {
+            "name": "도즈+에피+산화막",
+            "probability": 0.47463865658472454
+          }
+        ],
+        "recommendation": "웨이퍼 1장 → 4장",
+        "warning": "에피가 벗어났을 가능성이 높다: 에피는 제어할 수 없어 BV 는 보정되지 않는다",
+        "duration_seconds": 25.84201109300011,
+        "tcad_status": "not_run",
+        "applied": false,
+        "generated_at_ms": 1792643996931,
+        "sent_at_ms": 1792643996931,
+        "input": {
+          "request_id": "REQ-1cc32b2fafff450ca187d88df9d995f8",
+          "lot_id": "LOT-UNITY-ION-DIRECT-TEST",
+          "baseline_version": "tcad-gp-c02d4f1724f0",
+          "data_source": "synthetic",
+          "n_wafers": 1,
+          "sent_at_ms": 1792644003854,
+          "units": {
+            "vth": "V",
+            "gm": "A/V/um",
+            "id4v": "A/um",
+            "bv": "V"
+          },
+          "measurement": {
+            "vth": 2.487986270022883,
+            "gm": 4.369999999999996e-06,
+            "id4v": 4.846e-06,
+            "bv": 37.23913520855404
+          }
+        }
+      }
+    }
+  }
+}

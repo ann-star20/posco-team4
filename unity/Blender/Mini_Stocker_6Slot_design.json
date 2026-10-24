@@ -1,0 +1,110 @@
+{
+  "body_dimensions_m": [
+    2.3,
+    1.5,
+    2.85
+  ],
+  "total_depth_with_port_m": 2.19,
+  "slot_count": 6,
+  "foup_case_dimensions_m": [
+    0.4,
+    0.38,
+    0.386
+  ],
+  "slot_base_positions_m": [
+    [
+      -0.57,
+      0.32,
+      0.68
+    ],
+    [
+      0.57,
+      0.32,
+      0.68
+    ],
+    [
+      -0.57,
+      0.32,
+      1.3
+    ],
+    [
+      0.57,
+      0.32,
+      1.3
+    ],
+    [
+      -0.57,
+      0.32,
+      1.92
+    ],
+    [
+      0.57,
+      0.32,
+      1.92
+    ]
+  ],
+  "io_dock_m": [
+    0.57,
+    -1.1,
+    1.1
+  ],
+  "motion_parts": [
+    "Elevator_Carriage",
+    "Horizontal_Slider",
+    "FOUP_Fork",
+    "Port_Door_ANIM",
+    "Front_Door_Left",
+    "Front_Door_Right"
+  ],
+  "note": "Six-slot stocker with Unity-controlled dispatch/receive, OHT handoff and reserved return slot. Internal mechanism is a simplified presentation model.",
+  "foup_actual_envelope_m": [
+    0.4000000059604645,
+    0.414000004529953,
+    0.38599997758865356
+  ],
+  "reach_checks": [
+    {
+      "target": "Slot_01_DockPoint",
+      "attachment_error_m": 0.0
+    },
+    {
+      "target": "Slot_02_DockPoint",
+      "attachment_error_m": 0.0
+    },
+    {
+      "target": "Slot_03_DockPoint",
+      "attachment_error_m": 0.0
+    },
+    {
+      "target": "Slot_04_DockPoint",
+      "attachment_error_m": 0.0
+    },
+    {
+      "target": "Slot_05_DockPoint",
+      "attachment_error_m": 0.0
+    },
+    {
+      "target": "Slot_06_DockPoint",
+      "attachment_error_m": 0.0
+    },
+    {
+      "target": "FOUP_DockPoint",
+      "attachment_error_m": 1.2e-07
+    }
+  ],
+  "total_height_with_tower_m": 3.07,
+  "port_alignment_check": {
+    "centre_x_m": 0.57,
+    "opening_width_m": 0.56,
+    "opening_height_m": 0.5575,
+    "carrier_width_m": 0.4,
+    "carrier_height_m": 0.386,
+    "horizontal_carrier_clearance_each_m": 0.08,
+    "clearance_above_carrier_m": 0.0915,
+    "clearance_below_fork_m": 0.0295,
+    "open_shutter_clearance_m": 0.119,
+    "note": "Static design-envelope check, not a full collision animation test."
+  },
+  "animation_clear_lane_y_m": -0.26,
+  "fork_payload_underbody_clearance_m": 0.0155
+}
