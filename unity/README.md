@@ -44,12 +44,12 @@ Gateway 진단 및 TCAD 보정 후보 검토 화면을 포함합니다.
 `Tools/FabSocket/server.py`는 로컬 인증 파일이 없으면 역할별 랜덤 토큰을 생성합니다.
 설정 예제의 공통 문자열을 운영 토큰으로 그대로 사용하지 마세요.
 
-### 노트북 웹캠
+### ip웹캠
 
-`Tools/LaptopWebcam`은 다른 Windows 노트북의 웹캠을 MJPEG `/video`로 송출하는 소스입니다.
-현재 Unity PC에서는 `Tools/JetsonAOI/connect-laptop-webcam.cmd`로 송출 주소를 지정합니다.
-실행 EXE·가상환경·빌드 산출물은 소스 저장소에서 제외했습니다.
-빌드 방법은 `docs/SETUP.md`를 참조하세요.
+스마트폰의 IP Webcam 앱으로 카메라 영상을 MJPEG /video로 송출합니다.
+스마트폰과 Jetson을 같은 네트워크에 연결하고, 앱에 표시된 http://<스마트폰 IP>:<포트>/video를 Jetson AOI의 카메라 입력 주소로 설정합니다.
+Jetson이 영상을 수신해 검사하고, Unity AOI 대시보드에 실시간 영상과 검사 결과를 전달합니다.
+스마트폰 IP가 변경되면 Jetson AOI의 카메라 입력 주소도 변경해야 합니다.
 
 ## TCAD 승인 범위
 
