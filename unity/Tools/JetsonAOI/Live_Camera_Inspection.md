@@ -1,4 +1,8 @@
-# 현재 카메라 화면 → Jetson 검사
+# 과거 방식: Unity 카메라 화면 → Jetson 8401 검사
+
+이 문서는 복원용으로 보관한 이전 JPEG 업로드 어댑터의 설명입니다. 현재 IP Webcam 연결에는 아래 8401 실행 절차를 사용하지 않습니다.
+현재 연결은 스마트폰 `/video` → Jetson → Unity이며, 영상은 8500·검사는 8400을 사용합니다.
+[현재 연결 안내](JETSON_PREVIEW_CONNECTION.md)와 [IP 웹캠 설정](../../docs/SETUP.md#ip-웹캠-연결)을 참조하세요.
 
 ## 실행
 

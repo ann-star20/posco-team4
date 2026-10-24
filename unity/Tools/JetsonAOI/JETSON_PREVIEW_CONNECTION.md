@@ -2,6 +2,15 @@
 
 Default Jetson: `192.168.213.167`.
 
+## Camera source: IP Webcam
+
+Start the IP Webcam server on the smartphone. Configure Jetson AOI to read
+`http://<phone IP>:<port>/video`; preserve authentication settings if used.
+The phone and Jetson must be reachable over the network. Update the source URL when the phone IP changes.
+Unity receives preview frames from Jetson 8500 and sends inspection requests to Jetson 8400;
+it does not read the smartphone MJPEG URL directly. The Windows laptop sender is optional and is not required for this setup.
+See [IP Webcam setup](../../docs/SETUP.md#ip-웹캠-연결).
+
 ## Operator connection
 
 1. Open the AOI monitor and select **연결 → Jetson 영상 연결 · 8500**.

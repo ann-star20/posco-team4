@@ -13,7 +13,7 @@
 
 ## 통신
 
-Jetson 192.168.10.253에서 Python 표준 라이브러리 서비스가 CSV 100행을 읽는다.
+Jetson 192.168.213.167에서 Python 표준 라이브러리 서비스가 CSV 100행을 읽는다.
 서비스는 Jetson의 127.0.0.1:8601에만 바인딩한다. SSH 로컬 포워딩을 통해
 Unity가 http://127.0.0.1:8601/api/v1/test-samples 를 조회한다.
 PC 주소가 localhost여도 데이터는 SSH를 통해 Jetson에서 읽는다. PC CSV 대체 읽기는 없다.

@@ -1,4 +1,23 @@
-# AOI 카메라 → 젯슨 → Unity
+# AOI 카메라 → Jetson → Unity
+
+## 현재 연결: IP Webcam (2026-10-24)
+
+스마트폰의 IP Webcam 앱에서 영상 서버를 실행하고 `http://<스마트폰 IP>:<포트>/video`를 Jetson AOI의 카메라 입력 주소로 설정합니다.
+스마트폰과 Jetson은 서로 통신 가능한 네트워크에 연결되어 있어야 합니다. 스마트폰 IP가 바뀌면 카메라 입력 주소도 갱신합니다.
+
+- Jetson 기본 주소: `192.168.213.167`
+- Unity 영상 연결: `ws://192.168.213.167:8500/camera/preview`
+- Unity 검사 연결: `ws://192.168.213.167:8400/aoi`
+- Unity는 스마트폰 `/video`에 직접 연결하지 않고 Jetson을 통해 영상과 검사 결과를 받습니다.
+- 노트북 웹캠 송출 도구는 현재 IP Webcam 구성에 필요하지 않습니다.
+
+스마트폰 설정은 [SETUP.md](../../docs/SETUP.md#ip-웹캠-연결), Unity 연결과 프레임 검사 규격은 [JETSON_PREVIEW_CONNECTION.md](JETSON_PREVIEW_CONNECTION.md)를 따릅니다.
+현재 실서버 연결 성공 여부는 실행 후 별도로 확인해야 합니다.
+
+## 과거 시험·구현 기록
+
+아래 내용은 이전 시험 사진·로컬 소켓·HTTP 방식에 대한 기록입니다. 아래의 예전 주소와 구현 상태 설명은 현재 실행 안내가 아닙니다.
+
 
 ## 직접 WebSocket 사진 수신 시험 (2026-10-19)
 

@@ -7,7 +7,7 @@
 Play를 끈 상태에서 새 파일을 가져온 뒤 메뉴 **MOSFET → Gateway → TCAD 비동기 연동 테스트**를 선택합니다.
 
 1. **오프라인 계약 테스트 실행**: 서버에 전송하지 않습니다.
-2. Gateway 주소에는 `ws://192.168.213.12:8000`을 입력합니다. 경로는 테스트 코드가 붙입니다.
+2. Gateway 주소에는 `ws://192.168.212.10:8000`을 입력합니다. 경로는 테스트 코드가 붙입니다.
 3. Gateway 요청 토큰을 입력합니다. 토큰은 파일에 저장하지 않습니다. TCAD 토큰은 Unity에 필요 없습니다.
 4. **팀원 확인 예시 불러오기**를 누르면 제공받은 통신 시험값을 채웁니다. 실제 검사 시험에는 해당 검사의 input_payload로 바꾸세요.
 5. **새 진단 요청 JSON 만들기**로 전송 내용을 확인합니다. 이 단계에서는 전송하지 않습니다.
@@ -19,7 +19,7 @@ Play를 끈 상태에서 새 파일을 가져온 뒤 메뉴 **MOSFET → Gateway
 
 ## Unity 요청
 
-요청 연결: `ws://192.168.213.12:8000/api/v1/control`
+요청 연결: `ws://192.168.212.10:8000/api/v1/control`
 
 헤더: `X-Unity-Token: <Gateway 요청 토큰>`
 
@@ -61,7 +61,7 @@ Play를 끈 상태에서 새 파일을 가져온 뒤 메뉴 **MOSFET → Gateway
 테스트는 새 공정 실행을 만들므로 run_id를 새로 생성합니다. 실제 설비 연결에서는 원래 검사의 run_id를 끝까지 유지하고, 진단 request_id만 새로 생성해야 합니다.
 
 결과 연결:
-`ws://192.168.213.12:8000/api/v1/stream?run_id=<공정 실행 UUID>&after_sequence=<마지막 sequence>`
+`ws://192.168.212.10:8000/api/v1/stream?run_id=<공정 실행 UUID>&after_sequence=<마지막 sequence>`
 
 진단 후 Gateway가 후보를 저장하고 TCAD 작업을 관리합니다. Unity는 `tcad.verification.candidate_queued/running/succeeded/failed/cancelled`, `batch_completed`, `review_required` 이벤트를 수신합니다. 후보를 하나로 줄이지 않고 tcad_request_id별로 유지합니다. tcad_request_id 생성·TCAD HTTP 호출·상태 폴링·정책 판단은 Gateway 책임입니다. 이 테스트는 승인 요청이나 레시피 적용을 하지 않습니다.
 

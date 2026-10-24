@@ -25,7 +25,8 @@
 - `AoiCameraStream.cs`, `AoiPreviewProtocol.cs`: 카메라 영상 수신
 - `AoiDashboard.cs`, `AoiDashboard.Signal.cs`: 검사 화면
 - `Tools/JetsonAOI`: Jetson 실행·연결·프로토콜 검사 소스
-- `Tools/LaptopWebcam/webcam_sender.py`: 다른 노트북 웹캠 송출 소스
+- IP Webcam 연결: 스마트폰 `/video` → Jetson → Unity. 설정은 [SETUP.md](SETUP.md)의 IP 웹캠 연결 항목 참조
+- `Tools/LaptopWebcam/webcam_sender.py`: 별도 Windows 노트북 송출용 선택 도구. 현재 IP Webcam 연결에는 사용하지 않음
 
 ## 시험 도구 및 데이터
 - `Assets/MOSFETInspection/Editor/*Check*.cs`: 에디터 검사 도구
