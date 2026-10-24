@@ -1,0 +1,15 @@
+{
+ "비고": "최종ML/데이터/학습데이터_최종.csv 의 S_dose_0.3 (도즈 단일 노브 -70%, 외삽시험용=Y, 학습 영역 밖으로 팀이 직접 표시한 포인트) 을 Jetson 실기에 그대로 요청해서 받은 응답. 2026-10-22.",
+ "요청": {
+  "schema_version": 1, "task_type": "diagnose", "request_id": "demo-dose03",
+  "model_contract_version": "fab-ml-v1",
+  "input_payload": {"measurements": {"vth": 0.1275956284153006, "gm": 5.490000000000001, "id_on": 8.414, "bv": null}, "n_wafers": 25, "refine": false}
+ },
+ "응답_HTTP": 200,
+ "응답_핵심": {
+  "anomaly_detected": true,
+  "decision": {"decided": false, "top_category": "dose+epi+oxide", "reason": "POOR_FIT: 측정값이 학습 영역의 어떤 상태와도 잘 맞지 않는다 (학습하지 않은 유형의 이상일 수 있다). 사람이 판단해야 한다."},
+  "fit": {"chi2_min": 2933.7302989474774, "poor_fit_threshold": 12.0, "poor_fit": true},
+  "compensation": {"route": "manual", "high_confidence": false, "confidence_blockers": ["POOR_FIT"]}
+ }
+}

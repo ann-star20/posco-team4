@@ -1,0 +1,74 @@
+{
+ "비고": "Jetson 실기(192.168.10.253, fabrx-model 서비스)에 실제로 요청해서 받은 응답. 학습 영역의 어떤 조합과도 맞지 않는 측정값으로 POOR_FIT 을 의도적으로 유발. 2026-10-22.",
+ "요청": {
+  "schema_version": 1,
+  "task_type": "diagnose",
+  "request_id": "demo-manual-0001",
+  "model_contract_version": "fab-ml-v1",
+  "input_payload": {
+   "measurements": {"vth": 2.95, "gm": 6.2, "id_on": 6.6, "bv": 37.5},
+   "n_wafers": 25,
+   "refine": false
+  }
+ },
+ "응답_HTTP": 200,
+ "응답": {
+  "request_id": "demo-manual-0001",
+  "job_id": null,
+  "model_contract_version": "fab-ml-v1",
+  "model_version": "mosfet-gp-2026-10-18",
+  "result_origin": "prod",
+  "status": "succeeded",
+  "anomaly_detected": true,
+  "result_payload": {
+   "decision": {
+    "decided": false,
+    "top_category": "dose+epi+oxide",
+    "top_category_label": "도즈+에피+산화막",
+    "top_probability": 1.0,
+    "candidates": [{"category": "dose+epi+oxide", "category_label": "도즈+에피+산화막", "probability": 1.0}],
+    "category_probabilities": {"normal": 0.0, "dose": 0.0, "epi": 0.0, "dose+epi": 0.0, "oxide": 0.0, "dose+oxide": 0.0, "epi+oxide": 0.0, "dose+epi+oxide": 1.0},
+    "deviation_threshold_ratio": 0.05,
+    "decision_threshold_probability": 0.7,
+    "reason": "POOR_FIT: 측정값이 학습 영역의 어떤 상태와도 잘 맞지 않는다 (학습하지 않은 유형의 이상일 수 있다). 사람이 판단해야 한다."
+   },
+   "knobs": {
+    "body_dose": {"mean": 13089998446404.775, "ci90": [13090000000000.002, 13090000000000.002], "mean_ratio": 1.6999997982343864, "ci90_ratio": [1.7, 1.7], "p_deviated": 1.0000000000000002, "unit": "cm^-2"},
+    "epi_doping": {"mean": 2.009026834287479e+16, "ci90": [1.9890000000000004e+16, 2.031499999999999e+16], "mean_ratio": 1.1817804907573408, "ci90_ratio": [1.17, 1.195], "p_deviated": 1.0000000000000002, "unit": "cm^-3"},
+    "oxide_thickness": {"mean": 0.05044921138520559, "ci90": [0.0504, 0.0507], "mean_ratio": 0.8408201897534265, "ci90_ratio": [0.84, 0.845], "p_deviated": 1.0000000000000002, "unit": "um"}
+   },
+   "next_measurement": {
+    "recommendation": "추가 측정 불필요 (이미 판정됨)",
+    "recommendation_code": "none_needed",
+    "recommendation_label": "추가 측정 불필요 (이미 판정됨)",
+    "actions": [
+     {"action": "웨이퍼 25장 → 50장", "action_code": "more_wafers_2x", "action_label": "웨이퍼 25장 → 50장", "decidable_fraction": 1.0, "expected_top_probability": 1.0},
+     {"action": "웨이퍼 25장 → 100장", "action_code": "more_wafers_4x", "action_label": "웨이퍼 25장 → 100장", "decidable_fraction": 1.0, "expected_top_probability": 1.0}
+    ]
+   },
+   "compensation": {
+    "changes": {"body_dose": -0.15000000000000002, "oxide_thickness": -0.015000000000000124},
+    "factors": {"body_dose": 0.85, "oxide_thickness": 0.9849999999999999},
+    "epi_doping": "not_controllable",
+    "p_vth_in_spec_before": 0.0, "p_vth_in_spec_after": 1.0, "p_bv_in_spec": 0.0, "p_epi_deviated": 1.0000000000000002,
+    "warning": "에피가 벗어났을 가능성이 높다: 에피는 제어할 수 없어 BV 는 보정되지 않는다",
+    "limit_ratio": [0.85, 1.15], "based_on": "surrogate",
+    "route": "manual", "high_confidence": false, "confidence_blockers": ["POOR_FIT"], "confidence": null,
+    "threshold_evidence": {"p_after_in_spec": 0.0, "cause_probability": 1.0, "max_abs_change_ratio": 0.15000000000000002, "p_epi_deviated": 1.0000000000000002},
+    "thresholds": {"p_spec_after": 0.99, "p_cause": 0.9, "max_change": 0.15, "core": [0.7, 1.3], "max_p_epi": 0.05, "status": "provisional"},
+    "requires_human_approval": true
+   },
+   "fit": {"chi2_min": 1486.9822247866955, "n_obs": 4, "poor_fit_threshold": 16.0, "poor_fit": true},
+   "refine": {"requested": false, "performed": false, "model_mode": null, "decision_changed": null, "reason": "생략"},
+   "spec": {"vth_min": 1.7, "vth_max": 2.6, "bv_min": 40.0, "status": "datasheet_AOI4184"}
+  },
+  "metadata": {
+   "n_wafers": 25, "bv_measured": true,
+   "units": {"vth": "V", "gm": "uS/um", "id_on": "uA/um", "bv": "V"},
+   "id_conditions": {"vgs_v": 4.0, "vds_v": 0.1, "temperature_c": 26.85},
+   "warnings": ["POOR_FIT"],
+   "processing_ms": 2167.3
+  },
+  "tcad_proposal": null
+ }
+}

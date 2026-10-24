@@ -1,0 +1,269 @@
+{
+ "요청": {
+  "schema_version": 1,
+  "task_type": "diagnose",
+  "request_id": "d1111111-0000-0000-0000-000000000001",
+  "job_id": "13473eb7-77ca-4b5a-986e-d61d852b00c1",
+  "run_id": "fcd65345-9f6a-454e-80fd-17b7fd6d175c",
+  "lot_id": "LOT-001",
+  "attempt": 1,
+  "model_contract_version": "fab-ml-v1",
+  "surrogate_mode": "prod",
+  "input_payload": {
+   "measurements": {
+    "vth": 2.63,
+    "gm": 4.064,
+    "id_on": 4.173,
+    "bv": 42.98
+   },
+   "n_wafers": 25,
+   "refine": false
+  }
+ },
+ "응답_HTTP": 200,
+ "응답": {
+  "request_id": "d1111111-0000-0000-0000-000000000001",
+  "job_id": "13473eb7-77ca-4b5a-986e-d61d852b00c1",
+  "model_contract_version": "fab-ml-v1",
+  "model_version": "mosfet-gp-2026-10-18",
+  "result_origin": "prod",
+  "status": "succeeded",
+  "anomaly_detected": true,
+  "result_payload": {
+   "decision": {
+    "decided": true,
+    "top_category": "oxide",
+    "top_category_label": "산화막",
+    "top_probability": 0.9417324941205857,
+    "candidates": [
+     {
+      "category": "oxide",
+      "category_label": "산화막",
+      "probability": 0.9417324941205857
+     }
+    ],
+    "category_probabilities": {
+     "normal": 0.0,
+     "dose": 0.0,
+     "epi": 0.0,
+     "dose+epi": 0.0,
+     "oxide": 0.9417324941205857,
+     "dose+oxide": 0.05826574196455944,
+     "epi+oxide": 1.899168118506264e-12,
+     "dose+epi+oxide": 1.7639129551927293e-06
+    },
+    "deviation_threshold_ratio": 0.05,
+    "decision_threshold_probability": 0.7
+   },
+   "knobs": {
+    "body_dose": {
+     "mean": 7708236510259.806,
+     "ci90": [
+      7392000000000.001,
+      8046500000000.003
+     ],
+     "mean_ratio": 1.0010696766571177,
+     "ci90_ratio": [
+      0.9600000000000002,
+      1.0450000000000004
+     ],
+     "p_deviated": 0.05826750587751474,
+     "unit": "cm^-2"
+    },
+    "epi_doping": {
+     "mean": 1.7003926787356244e+16,
+     "ci90": [
+      1.666000000000001e+16,
+      1.7340000000000008e+16
+     ],
+     "mean_ratio": 1.0002309874915438,
+     "ci90_ratio": [
+      0.9800000000000005,
+      1.0200000000000005
+     ],
+     "p_deviated": 1.763914854360848e-06,
+     "unit": "cm^-3"
+    },
+    "oxide_thickness": {
+     "mean": 0.0689892813030111,
+     "ci90": [
+      0.06659999999999998,
+      0.07109999999999989
+     ],
+     "mean_ratio": 1.149821355050185,
+     "ci90_ratio": [
+      1.1099999999999997,
+      1.184999999999998
+     ],
+     "p_deviated": 1.0,
+     "unit": "um"
+    }
+   },
+   "next_measurement": {
+    "recommendation": "추가 측정 불필요 (이미 판정됨)",
+    "recommendation_code": "none_needed",
+    "recommendation_label": "추가 측정 불필요 (이미 판정됨)",
+    "actions": [
+     {
+      "action": "웨이퍼 25장 → 50장",
+      "action_code": "more_wafers_2x",
+      "action_label": "웨이퍼 25장 → 50장",
+      "decidable_fraction": 0.9666666666666667,
+      "expected_top_probability": 0.9429306780439897
+     },
+     {
+      "action": "웨이퍼 25장 → 100장",
+      "action_code": "more_wafers_4x",
+      "action_label": "웨이퍼 25장 → 100장",
+      "decidable_fraction": 0.9333333333333333,
+      "expected_top_probability": 0.9444749044300096
+     }
+    ]
+   },
+   "compensation": {
+    "changes": {
+     "body_dose": -0.015000000000000124,
+     "oxide_thickness": -0.12
+    },
+    "factors": {
+     "body_dose": 0.9849999999999999,
+     "oxide_thickness": 0.88
+    },
+    "epi_doping": "not_controllable",
+    "p_vth_in_spec_before": 0.0,
+    "p_vth_in_spec_after": 1.0,
+    "p_bv_in_spec": 1.0,
+    "p_epi_deviated": 1.763914854360848e-06,
+    "warning": null,
+    "limit_ratio": [
+     0.85,
+     1.15
+    ],
+    "based_on": "surrogate",
+    "route": "apply",
+    "high_confidence": true,
+    "confidence_blockers": [],
+    "confidence": 0.9417324941205857,
+    "threshold_evidence": {
+     "p_after_in_spec": 1.0,
+     "cause_probability": 0.9417324941205857,
+     "max_abs_change_ratio": 0.12,
+     "p_epi_deviated": 1.763914854360848e-06
+    },
+    "thresholds": {
+     "p_spec_after": 0.99,
+     "p_cause": 0.9,
+     "max_change": 0.15,
+     "core": [
+      0.7,
+      1.3
+     ],
+     "max_p_epi": 0.05,
+     "status": "provisional"
+    },
+    "requires_human_approval": true,
+    "target_process_parameters": {
+     "body_dose": 7592612962605.908,
+     "epi_doping": 1.7003926787356244e+16,
+     "oxide_thickness": 0.06071056754664977
+    },
+    "target_predicted_outputs": {
+     "vth": 2.262476824074538,
+     "gm": 4.567340213561739,
+     "id_on": 5.179973096061435,
+     "bv": 41.246431496496385
+    }
+   },
+   "fit": {
+    "chi2_min": 0.004484240189310758,
+    "n_obs": 4,
+    "poor_fit_threshold": 16.0,
+    "poor_fit": false
+   },
+   "refine": {
+    "requested": false,
+    "performed": false,
+    "model_mode": null,
+    "decision_changed": null,
+    "reason": "생략"
+   },
+   "spec": {
+    "vth_min": 1.7,
+    "vth_max": 2.6,
+    "bv_min": 40.0,
+    "status": "datasheet_AOI4184"
+   }
+  },
+  "metadata": {
+   "input_transform_version": "gp-transform-v1",
+   "n_wafers": 25,
+   "bv_measured": true,
+   "units": {
+    "vth": "V",
+    "gm": "uS/um",
+    "id_on": "uA/um",
+    "bv": "V"
+   },
+   "id_conditions": {
+    "vgs_v": 4.0,
+    "vds_v": 0.1,
+    "temperature_c": 26.85
+   },
+   "models": {
+    "vth_gm": "gp-stage1-matern52-ard",
+    "id_on": "gp-stage2-vth-input",
+    "bv": "gp-bv-raw-input"
+   },
+   "warnings": [],
+   "anomaly_basis": "measurements_vs_spec",
+   "processing_ms": 3345.4,
+   "model": {
+    "name": "mosfet-gp-diagnosis",
+    "version": "2026-10-18",
+    "artifact_hash": "sha256:f674b7a536f6a42d7e6dbf4b648fc5465de5f7fefea653280177c247dcdf7eeb",
+    "training_data_version": "tcad-train-8d189967db61",
+    "git_commit": null,
+    "runtime": "python-3.14",
+    "device": "cpu",
+    "precision": "float64"
+   },
+   "timing_ms": {
+    "request_validation": 0.026,
+    "diagnosis": 1387.368,
+    "compensation_search": 1955.229,
+    "refine": 0.0,
+    "postprocessing": 2.615,
+    "inference_total": 3342.682,
+    "service_total": 3345.4
+   },
+   "stages": [
+    {
+     "stage": "request_validation",
+     "status": "succeeded",
+     "duration_ms": 0.026
+    },
+    {
+     "stage": "diagnosis",
+     "status": "succeeded",
+     "duration_ms": 1387.368
+    },
+    {
+     "stage": "compensation_search",
+     "status": "succeeded",
+     "duration_ms": 1955.229
+    },
+    {
+     "stage": "refine",
+     "status": "skipped",
+     "duration_ms": 0.0
+    },
+    {
+     "stage": "postprocessing",
+     "status": "succeeded",
+     "duration_ms": 2.615
+    }
+   ]
+  },
+  "tcad_proposal": null
+ }
+}

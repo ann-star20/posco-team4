@@ -1,0 +1,14 @@
+{
+ "비고": "최종ML/데이터/학습데이터_최종.csv 의 S_dose_1.3 (도즈 단일 노브 +30%, 다른 두 노브는 기준값) 을 Jetson 실기에 그대로 요청해서 받은 응답. 2026-10-22.",
+ "요청": {
+  "schema_version": 1, "task_type": "diagnose", "request_id": "demo-dose13",
+  "model_contract_version": "fab-ml-v1",
+  "input_payload": {"measurements": {"vth": 2.7771461716937353, "gm": 4.309999999999996, "id_on": 4.045, "bv": 41.39359926491381}, "n_wafers": 25, "refine": false}
+ },
+ "응답_HTTP": 200,
+ "응답_핵심": {
+  "anomaly_detected": true,
+  "decision": {"decided": true, "top_category": "dose", "top_category_label": "도즈", "top_probability": 0.9459144780778951},
+  "compensation": {"route": "tcad_verify", "high_confidence": false, "confidence_blockers": ["CHANGE_TOO_LARGE"]}
+ }
+}

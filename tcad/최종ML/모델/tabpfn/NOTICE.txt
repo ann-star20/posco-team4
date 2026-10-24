@@ -1,0 +1,4 @@
+tabpfn-v2-regressor.ckpt : TabPFN v2 regressor weights (Prior Labs), downloaded from https://huggingface.co/Prior-Labs/TabPFN-v2-reg
+License: Apache 2.0 with an additional attribution requirement (see the model card / LICENSE.txt in that repository).
+Reference: Hollmann et al., "Accurate predictions on small data with a tabular foundation model", Nature 2025.
+Used only by the optional high-precision mode.
