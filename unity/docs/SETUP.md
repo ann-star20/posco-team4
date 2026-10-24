@@ -6,15 +6,22 @@ Unity Hub로 프로젝트 폴더를 추가하고 ProjectVersion.txt의 버전으
 서버에 요청하기 전 연결 주소·토큰·CSV/시뮬레이션 입력의 출처를 확인합니다.
 Unity 편집기 개인 창 배치는 UserSettings이므로 공유본에 포함하지 않았습니다.
 
-## 선택 사항: 노트북 웹캠 EXE 빌드
+## IP 웹캠 연결
 
-Windows 64비트 Python 3.12와 정상 Tcl/Tk가 필요합니다.
-Tools/LaptopWebcam 폴더에서 `.build-env` 가상환경을 만들고
-`requirements-build.txt`를 설치합니다. build.ps1은 `.tcl/tcl8.6`, `.tcl/tk8.6`에
-빌드용 Tcl/Tk 리소스를 복사해 둔 환경을 사용합니다.
-원본 Python 설치의 tcl 디렉터리를 `.tcl`로 복사한 뒤 build.ps1을 실행합니다.
-EXE와 ZIP은 release 및 도구 폴더에 생성되며 Git에서 제외됩니다.
-카메라의 실제 촬영은 프로그램에서 송출 시작을 눌렀을 때만 시작됩니다.
+1. 스마트폰에서 IP Webcam 앱을 실행하고 영상 서버를 시작합니다.
+2. 스마트폰과 Jetson을 서로 통신 가능한 네트워크에 연결합니다.
+3. 앱에 표시된 주소를 확인하고, 브라우저에서 영상이 보이는지 확인합니다.
+4. `http://<스마트폰 IP>:<포트>/video`를 Jetson AOI의 카메라 입력 주소로 설정합니다. 인증을 사용하는 경우 기존 인증 설정도 유지합니다.
+5. Jetson의 카메라 미리보기 서버(8500)와 AOI 검사 서버(8400)를 실행합니다. 이미 실행 중이라면 변경한 카메라 주소를 반영하도록 재시작합니다.
+6. Unity AOI 대시보드에서 Jetson 주소와 발급받은 토큰을 설정하고 실시간 영상 및 검사 결과 수신을 확인합니다.
+
+Unity는 스마트폰의 `/video`에 직접 연결하지 않고 Jetson을 통해 영상을 받습니다.
+
+- 미리보기: `ws://<Jetson IP>:8500/camera/preview`
+- 검사: `ws://<Jetson IP>:8400/aoi`
+
+스마트폰 IP 또는 포트가 변경되면 Jetson AOI의 카메라 입력 주소도 변경해야 합니다.
+`Tools/LaptopWebcam`은 별도 Windows 노트북 송출용 선택 도구이며, IP Webcam 사용에는 필요하지 않습니다.
 
 ## 선택 사항: 로컬 시험 도구
 
