@@ -56,7 +56,7 @@
 4. 동일한 검증 데이터로 PyTorch FP32, ONNX, TensorRT FP16, 가능한 경우 TensorRT INT8을 비교한다.
 5. 모델 품질과 추론 지연뿐 아니라 ROS2 end-to-end latency, memory, power, temperature, energy per inference를 측정한다.
 6. 모델·데이터·환경의 identity와 원시 측정 결과를 함께 보존한다.
-7. 저장공간 약 1GB 내외의 경량 프로젝트를 유지한다.
+7. 데이터·모델·실험 산출물은 2GB 안팎으로 관리하고, Docker·관측성·DB cache까지 포함한 전체 프로젝트 운영 공간은 사용 가능한 10GB 안에서 최대 8GB를 목표로 하며 최소 2GB의 여유 공간을 남긴다.
 
 ### 3.2 비목표
 
@@ -144,9 +144,9 @@ MVP 완료 후 필요할 때만 다음 데이터셋을 별도 task로 추가한�
 | Edge 추론 | TensorRT FP16, TensorRT INT8 가능성 검증 |
 | 장비 | Jetson Orin Nano 8GB |
 | API | FastAPI |
-| 저장소 | MVP는 SQLite, 기존 중앙 시스템 연동 시 PostgreSQL |
-| 관측성 | JSONL 원시 로그 + Prometheus 형식 메트릭 또는 경량 API 대시보드 |
-| 시각화 | 경량 HTML/Plotly 또는 기존 Grafana가 이미 있을 때만 Grafana |
+| 저장소 | 로컬 개발은 SQLite, 운영 데모는 Aiven PostgreSQL 또는 기존 중앙 PostgreSQL |
+| 관측성 | JSONL 원시 로그 + Prometheus; retention과 volume 상한 적용 |
+| 시각화 | Grafana 기본, 리소스 부족 시 경량 HTML/Plotly fallback |
 | 패키징 | Docker 또는 ROS2 package; ARM64 이미지 분리 |
 | 실험 추적 | 경량 JSON/CSV manifest 우선, 디스크 여유 시 MLflow 추가 |
 | 품질 | pytest, ruff, mypy 선택 적용 |
@@ -190,7 +190,9 @@ MVP 완료 후 필요할 때만 다음 데이터셋을 별도 task로 추가한�
   - prediction + GT join
   - latency/jitter/drop
   - tegrastats power/temp/memory
-  - SQLite/JSONL/raw CSV
+  - SQLite 또는 Aiven PostgreSQL
+  - JSONL/raw CSV
+  - Prometheus metrics
           |
           v
 [FastAPI Dashboard]
@@ -275,9 +277,11 @@ ground truth를 inference input 메시지와 분리하여 모델이 label을 실
 ### 8.5 운영·표현 계층
 
 - 실험별 manifest와 raw JSON/CSV 저장
-- SQLite에 prediction, model, latency, device telemetry 저장
+- 로컬 개발에서는 SQLite에 prediction, model, latency, device telemetry 저장
+- 운영 데모에서는 Aiven PostgreSQL을 선택해 Jetson 로컬 디스크 사용량과 DB 운영 부담을 줄임
 - FastAPI로 최근 이벤트와 비교 결과 제공
-- 경량 웹 화면에서 센서 파형, slip probability, safety event, 성능 요약 표시
+- Prometheus가 runtime·ROS2·Jetson 지표를 scrape하고 Grafana에서 상태와 비교 결과를 표시
+- Prometheus를 사용할 수 없는 환경에서는 경량 웹 화면으로 센서 파형, slip probability, safety event, 성능 요약 표시
 - README에 재현 절차, 데이터 출처, 제한사항, 결과표 게시
 
 ## 9. 모델 구성
@@ -328,15 +332,44 @@ ground truth를 inference input 메시지와 분리하여 모델이 label을 실
 
 ## 10. 저장공간 절약 구성
 
-목표 추가 사용량은 약 1GB 내외다.
+1GB는 데이터·모델·결과물만을 위한 초기 목표였으며 Docker image, Python/ROS2 runtime, Prometheus/Grafana, DB volume까지 포함한 전체 예산으로는 지나치게 작다. 사용 가능한 약 10GB를 기준으로 **상시 사용량 8GB 이하, 안전 여유 2GB 이상**을 운영 목표로 한다. 빌드 중 임시 layer 때문에 10GB를 넘을 가능성이 있으면 build cache를 정리하거나 외부 저장소를 사용한 뒤 진행한다.
 
-| 항목 | 목표 상한 | 정책 |
+### 10.1 전체 저장공간 예산
+
+| 항목 | 목표 예산 | 정책 |
 |---|---:|---|
+| 소스·문서 | 0.2GB | 대형 binary 금지 |
 | 원본 데이터 | 0.1GB | ZIP 1개만 보존, Git 제외 |
-| 전처리 캐시 | 0.2GB | 모든 window 복제 대신 on-the-fly 생성 |
-| 모델·엔진 | 0.5GB | best와 비교 대상만 유지 |
-| 로그·결과 | 0.1GB | raw CSV/JSONL 압축, 보존 정책 적용 |
-| 코드·문서 | 0.1GB | 대형 binary 금지 |
+| 전처리 cache·짧은 ROS fixture | 0.5GB | window on-the-fly 생성, 중복 방지 |
+| 모델·ONNX·TensorRT engine | 0.7GB | best와 비교 대상만 유지 |
+| benchmark·압축 로그 | 0.5GB | raw 결과 보존, 회전·압축 적용 |
+| Python/ROS2 프로젝트 의존성 | 1.5GB | 기존 JetPack/ROS2 runtime 재사용 |
+| 애플리케이션 Docker image·layer | 1.5GB | multi-stage build와 slim base 사용 |
+| Prometheus·Grafana image/volume | 1.5GB | 짧은 retention과 volume 상한 적용 |
+| 로컬 DB·기타 volume | 0.5GB | Aiven 사용 시 더 작아짐 |
+| 예비 공간 | 최소 2.0GB | engine build·export 임시 파일과 장애 대응 |
+
+표의 수치는 hard limit가 아니라 설계 예산이다. 실제 image 크기와 volume 증가량을 측정해 manifest에 기록한다.
+
+### 10.2 배포 프로파일
+
+| 프로파일 | 구성 | 예상 상시 사용량 | 용도 |
+|---|---|---:|---|
+| Lean MVP | native ROS2/JetPack + SQLite + 경량 dashboard | 3~5GB | 모델·ROS2·TensorRT 우선 검증 |
+| Portfolio Demo | Lean MVP + Prometheus + Grafana + Aiven PostgreSQL | 6~8GB | 최종 데모 권장 |
+| Full Local | Prometheus + Grafana + local PostgreSQL + MLflow | 8GB 초과 가능 | 현재 10GB 환경에서는 기본 비권장 |
+
+Aiven PostgreSQL을 사용하면 로컬 PostgreSQL image와 data volume이 필요하지 않지만 네트워크 단절에 대비해 Jetson에는 bounded SQLite outbox를 유지한다. 연결 복구 후 중앙 DB로 재전송하고, local retention을 넘은 성공 전송 레코드는 삭제 또는 압축한다.
+
+### 10.3 Jetson 컨테이너 정책
+
+Jetson용 NVIDIA L4T/PyTorch image는 단독으로도 큰 공간을 사용할 수 있으므로 10GB 예산에서는 전체 ML runtime을 새 image에 중복 포함하지 않는 것을 기본으로 한다.
+
+- JetPack에 포함된 CUDA/TensorRT와 기존 ROS2 환경을 우선 재사용한다.
+- 학습은 PC 또는 별도 환경에서 수행하고 Jetson에는 inference artifact만 전달한다.
+- Jetson에서는 inference node를 native ROS2 package로 실행하거나 host runtime을 활용하는 얇은 image를 사용한다.
+- FastAPI, Prometheus, Grafana처럼 비교적 작은 운영 구성요소만 containerize한다.
+- 완전한 L4T ML container가 필요하면 image 실제 크기를 먼저 확인하고 NVMe/외장 저장소 확보 또는 다른 component 제거 후 채택한다.
 
 구체적인 정책은 다음과 같다.
 
@@ -346,7 +379,10 @@ ground truth를 inference input 메시지와 분리하여 모델이 label을 실
 - 전체 rosbag를 반복 생성하지 않고 수 초 길이의 계약 테스트 fixture만 보존한다.
 - Docker image, TensorRT engine, Python virtual environment를 결과물로 커밋하지 않는다.
 - 대형 SLID-CH, PoseIt, 로컬 LLM은 MVP에서 다운로드하지 않는다.
-- Grafana, MLflow, Kubernetes는 기존 환경이 없으면 MVP 필수 의존성으로 두지 않는다.
+- Prometheus는 기본 retention을 3일로 시작하고 maximum size 또는 volume 사용량을 관찰해 조정한다.
+- Grafana는 dashboard provisioning 파일만 Git에 보존하고 runtime DB와 plugin cache는 제한한다.
+- Docker build cache와 dangling image 사용량을 측정하되 자동 삭제는 명시적인 운영 절차로만 수행한다.
+- MLflow와 Kubernetes는 현재 10GB 환경의 MVP 필수 의존성으로 두지 않는다.
 - benchmark 원시 데이터는 보존하되 로그 회전과 압축을 적용한다.
 
 ## 11. Jetson 최적화 범위
