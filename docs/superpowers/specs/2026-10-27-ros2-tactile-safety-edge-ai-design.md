@@ -56,7 +56,7 @@
 4. 동일한 검증 데이터로 PyTorch FP32, ONNX, TensorRT FP16, 가능한 경우 TensorRT INT8을 비교한다.
 5. 모델 품질과 추론 지연뿐 아니라 ROS2 end-to-end latency, memory, power, temperature, energy per inference를 측정한다.
 6. 모델·데이터·환경의 identity와 원시 측정 결과를 함께 보존한다.
-7. 데이터·모델·실험 산출물은 2GB 안팎으로 관리하고, Docker·관측성·DB cache까지 포함한 전체 프로젝트 운영 공간은 사용 가능한 10GB 안에서 최대 8GB를 목표로 하며 최소 2GB의 여유 공간을 남긴다.
+7. 데이터·모델·실험 산출물은 3GB 안팎으로 관리하고, Docker·관측성·DB cache까지 포함한 전체 프로젝트 운영 공간은 사용 가능한 10GB 안에서 최대 8GB를 목표로 하며 최소 2GB의 여유 공간을 남긴다.
 
 ### 3.2 비목표
 
@@ -114,7 +114,158 @@
 
 Zenodo 레코드의 라이선스 필드가 현재 화면에서 명시적으로 확인되지 않으므로 다운로드·학습은 가능하더라도 원본 데이터 재배포 여부는 별도 확인한다. 저장소에는 데이터 다운로드 방법과 DOI만 기록하고 원본 ZIP은 커밋하지 않는다.
 
-### 5.2 데이터 사용 원칙
+### 5.2 현재 로컬 데이터 구조와 1차 구조 감사
+
+현재 데이터는 다음 위치에 압축 해제되어 있다.
+
+```text
+data/Dataset_Contact_slippage_ICECS/
+  PVDF_roughtex/
+    Voltage_TXH-Texture 1-Hardness 1-T9sec-t1
+    ...
+    Voltage_TXH-Texture 1-Hardness 1-T9sec-t150
+  PVDF_softtex/
+    Voltage_TXH-Texture 2-Hardness 1-T9sec-t1
+    ...
+    Voltage_TXH-Texture 2-Hardness 1-T9sec-t150
+```
+
+2026-10-27 로컬 파일을 read-only로 조사한 1차 결과는 다음과 같다.
+
+| 항목 | PVDF_roughtex | PVDF_softtex |
+|---|---:|---:|
+| trial 파일 수 | 150 | 150 |
+| 비압축 크기 | 398.47MB | 398.11MB |
+| 파일당 행 수 최소~최대 | 15,874~16,290 | 15,887~16,290 |
+| 파일당 평균 행 수 | 16,194.83 | 16,179.99 |
+| 열 수 | 9 | 9 |
+| 구분자 | tab | tab |
+| header | 없음 | 없음 |
+| label 고유값 | 0, 1, 2, 3 | 0, 1, 2, 3 |
+| 파일당 label 전환 수 | 3 | 3 |
+
+관찰된 각 행은 앞의 실수형 8개 값과 마지막 label 1개로 구성된다. 파일명과 값 범위를 보면 앞 8열은 PVDF 센서 voltage channel로 추정되지만, 공식 schema를 확인하기 전까지 임시 이름 `pvdf_ch_1`~`pvdf_ch_8`을 사용하고 단위는 `unknown`으로 유지한다.
+
+대표 trial의 label run은 대체로 다음 순서를 보였다.
+
+```text
+1: 약 5,429행 -> 2: 약 5,430행 -> 3: 약 5,221행 -> 0: 마지막 1행
+```
+
+논문은 contact onset, slippage, release 세 event를 설명하므로 `1/2/3`이 이 순서에 대응할 가능성이 있지만 아직 확정하지 않는다. 마지막 한 행의 `0`은 종료 sentinel, padding 또는 별도 class인지 확인하기 전까지 학습 대상에서 제외하지도 class로 확정하지도 않는다.
+
+파일명의 `T9sec`를 9초 trial 길이로 해석하면 평균 sampling rate는 rough 약 1,799.43Hz, soft 약 1,797.78Hz로 추정된다. 그러나 timestamp 열이 없고 trial별 행 수가 다르므로 공식 sampling rate와 acquisition drop 여부를 원 논문·저자 설명에서 확인해야 한다. 추정 sampling rate는 탐색용으로만 사용하고 확정 metadata와 분리한다.
+
+### 5.3 데이터 구조·단위·sampling·label 조사 항목
+
+#### 파일과 행·열 구조
+
+- 두 폴더의 파일 수와 trial id `1~150` 완전성
+- 빈 파일, 읽기 실패, 중복 파일, 중복 trial 검출
+- 파일별 byte, 행 수, 열 수, delimiter, encoding 일관성
+- 모든 값의 numeric parse 가능 여부와 NaN/Inf/빈 값
+- 8개 입력 열과 label 열 외의 예외 행 존재 여부
+- 첫 행·마지막 행, 잘린 파일, 비정상적으로 짧거나 긴 trial
+- exact duplicate row와 장시간 constant run
+
+#### 열 의미와 단위
+
+- 8개 열이 실제로 8개 PVDF sensor channel인지 확인
+- voltage의 단위가 V인지 mV인지, ADC 변환 후 값인지 확인
+- channel 물리 배치와 sensor index의 의미
+- gain, offset, filtering, ADC resolution, saturation range
+- 폴더명의 `roughtex`, `softtex`, 파일명의 `Texture`, `Hardness`, `T9sec`, `tN` 의미
+- `softtex`가 공식 설명의 smooth surface와 같은 의미인지 확인
+
+#### sampling 특성
+
+- 공식 nominal sampling rate
+- timestamp 미포함 이유와 파일 내 sample 간격 가정
+- trial별 유효 duration과 행 수 차이 원인
+- sampling drop 또는 acquisition jitter 여부
+- anti-alias filter와 hardware/software filtering 여부
+- downsampling 가능한 최소 주파수와 aliasing 위험
+
+#### label 의미
+
+- label `1`, `2`, `3`, `0`의 공식 event mapping
+- label 생성 주체와 생성 규칙: threshold, F/T reference, 수동 annotation 여부
+- event transition 시점의 정확도와 label delay
+- 마지막 `0` 한 행의 의미
+- 모든 trial이 동일한 event 순서로 수집됐는지
+- rough/soft가 target label인지 domain/condition metadata인지
+
+조사 결과는 확인된 사실, 데이터로부터 계산한 값, 합리적 추정, 미확인 항목의 네 등급으로 구분한다.
+
+### 5.4 EDA 범위
+
+#### 데이터 품질 EDA
+
+- trial/texture별 행 수·파일 크기 분포
+- 채널별 min, max, mean, median, standard deviation, quantile
+- baseline voltage, offset, drift, saturation, clipping
+- 결측·무한값·이상치·constant channel 비율
+- trial 내부와 trial 간 signal scale 차이
+- 채널 간 correlation과 중복 센서 가능성
+- texture별, label별 sample 수와 지속시간 불균형
+
+#### 시간 영역 EDA
+
+- 전체 trial과 event transition 주변 파형
+- label 구간별 평균 waveform과 confidence band
+- first difference, slope, RMS, peak-to-peak, zero crossing
+- contact/slip/release 전후 peak amplitude와 response delay
+- event별 duration과 transition index 분포
+- trial 정규화 전후 신호 비교
+
+#### 주파수 영역 EDA
+
+- PSD, FFT, STFT 또는 spectrogram
+- label·texture별 dominant frequency와 band energy
+- slippage 구간의 주파수 특성이 contact/release와 분리되는지
+- downsampling 전후 정보 손실과 aliasing 검사
+- window length가 frequency resolution과 latency에 미치는 영향
+
+#### 일반화·누수 EDA
+
+- rough와 soft 간 feature distribution shift
+- trial 단위 군집과 outlier trial
+- 인접 sample/window의 자기상관
+- random row/window split이 성능을 과대평가하는 정도
+- trial-disjoint split과 가능하면 subject-disjoint split 비교
+- 같은 event 순서와 위치 자체를 모델이 shortcut으로 학습하는지
+
+### 5.5 분석 목적과 질문 목록
+
+EDA 결과를 보고 다음 분석 목적 중 MVP와 확장 task를 확정한다.
+
+1. **접촉 event 분류:** tactile-only 신호로 contact onset, slip, release를 구분할 수 있는가?
+2. **미끄러짐 조기 경보:** slip label 시작 전에 위험을 예측할 수 있으며 최소 warning horizon은 얼마인가?
+3. **표면 조건 일반화:** rough에서 학습한 특징이 soft에서도 유지되는가, 반대 방향은 어떤가?
+4. **센서 채널 기여도:** 8개 channel 중 안전 판별에 핵심적인 channel은 무엇이며 일부 channel만으로 성능을 유지할 수 있는가?
+5. **경량화 가능한 sampling:** 원 sampling rate를 얼마나 낮춰도 Safety Recall과 FNR을 유지할 수 있는가?
+6. **window-latency trade-off:** window 길이와 stride가 품질, warning delay, Jetson latency에 어떤 영향을 주는가?
+7. **threshold vs ML:** 원 논문의 threshold 방식과 통계 특징 모델, 1D CNN/TCN 사이의 성능·해석성·연산량 차이는 무엇인가?
+8. **domain shift 탐지:** texture 또는 trial 조건 변화가 confidence와 calibration에 어떤 영향을 주는가?
+9. **센서 이상 탐지:** channel 고정, drift, dropout을 감지하고 안전하게 실패할 수 있는가?
+10. **Edge 최적화:** downsampling, channel pruning, FP16/INT8이 품질·latency·power에 미치는 영향은 무엇인가?
+
+MVP의 우선 분석 목적은 `접촉 event 분류`, `미끄러짐 조기 경보`, `sampling/window trade-off`, `Edge 최적화`로 한다. texture 분류는 안전 판별을 방해하지 않는 보조 분석으로 둔다.
+
+### 5.6 EDA 산출물
+
+- `dataset_manifest.csv`: 파일, texture, trial id, byte, row count, duration 추정, schema 상태, hash
+- `schema_report.json`: delimiter, column count, dtype, unit status, label values
+- `label_mapping.md`: 공식 근거, label 의미, 미확인 사항
+- `eda_summary.md`: 핵심 발견과 모델링 결정
+- `eda_metrics.csv`: trial/channel/event별 통계
+- EDA plot: 파형, transition overlay, 분포, correlation, PSD/STFT, outlier
+- `split_manifest.csv`: trial/subject 단위 train/validation/test 배정
+- 데이터 카드: 출처, 라이선스, 수집 조건, 제한사항, leakage 위험
+
+EDA 산출물은 전체 원시 데이터를 복제하지 않고 원본에서 다시 생성 가능하도록 한다. plot은 대표 결과만 보존하고 대량 중간 이미지는 생성하지 않는다.
+
+### 5.7 데이터 사용 원칙
 
 - dataset hash와 다운로드 일자를 기록한다.
 - label 정의, 물리 단위, sampling rate가 원자료에서 확인되지 않으면 추정하지 않고 `unknown`으로 기록한다.
@@ -124,7 +275,7 @@ Zenodo 레코드의 라이선스 필드가 현재 화면에서 명시적으로 �
 - 데이터 누수를 방지하기 위해 scaler와 feature extractor는 train split만으로 fit한다.
 - 원본 시계열, 정규화 시계열, 모델 입력 window를 구분한다.
 
-### 5.3 후속 데이터셋
+### 5.8 후속 데이터셋
 
 MVP 완료 후 필요할 때만 다음 데이터셋을 별도 task로 추가한다.
 
@@ -232,9 +383,13 @@ ground truth를 inference input 메시지와 분리하여 모델이 label을 실
 ### 8.1 데이터 계층
 
 - 데이터 다운로드·무결성 확인 스크립트
-- ZIP 내부 구조 탐색과 schema report 생성
-- trial manifest 생성
-- label 분포와 누락값 리포트
+- 로컬 두 texture 폴더와 300개 trial의 구조 감사
+- header 없는 tab-delimited 9열 schema 검증과 schema report 생성
+- 열 단위·sampling rate·label mapping의 공식 근거 추적
+- trial manifest와 channel/event 통계 생성
+- label 분포, transition, 누락값, 이상치, drift, saturation 리포트
+- 시간·주파수 영역 EDA와 texture/domain 비교
+- EDA 결과를 이용한 MVP 분석 목적과 모델 입력 결정
 - trial/subject 단위 train/validation/test split
 - window size와 stride를 설정 가능한 전처리기
 - train-only normalization artifact 저장
@@ -339,7 +494,7 @@ ground truth를 inference input 메시지와 분리하여 모델이 label을 실
 | 항목 | 목표 예산 | 정책 |
 |---|---:|---|
 | 소스·문서 | 0.2GB | 대형 binary 금지 |
-| 원본 데이터 | 0.1GB | ZIP 1개만 보존, Git 제외 |
+| 원본 데이터 | 0.9GB | 현재 비압축 약 797MB, Git 제외 |
 | 전처리 cache·짧은 ROS fixture | 0.5GB | window on-the-fly 생성, 중복 방지 |
 | 모델·ONNX·TensorRT engine | 0.7GB | best와 비교 대상만 유지 |
 | benchmark·압축 로그 | 0.5GB | raw 결과 보존, 회전·압축 적용 |
