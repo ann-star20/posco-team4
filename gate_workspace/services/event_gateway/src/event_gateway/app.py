@@ -114,6 +114,7 @@ def create_app(settings: Settings) -> FastAPI:
         try:
             with psycopg.connect(settings.database_url, autocommit=True) as connection:
                 body=request.model_dump(mode='json') | {'diagnosis_mode':settings.diagnosis_mode}
+                body['input_payload']=dict(body['input_payload']) | {'refine':True}
                 return submit_inference_job(connection,body,settings.tcad_mode,settings.unity_mode,'diagnosis')
         except JobConflict as exc:
             raise HTTPException(409,str(exc)) from exc
