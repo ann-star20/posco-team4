@@ -1,0 +1,68 @@
+{
+ "비고": "이 PC의 TCAD 서비스(0.0.0.0:8400, 실제 Silvaco 계산모드 real)에 4_diagnose_산화막+25퍼센트_보정량큼.json 의 tcad_proposal.candidates[0] 을 그대로 실제 제출한 기록. request_id 는 Gateway가 새로 발급한다 (여기선 데모용 고정값). 결과(succeeded)는 계산이 끝나면 이 파일의 '3_결과_succeeded' 를 실제 값으로 채운다 (실측 기준 약 20~30분).",
+
+ "1_요청": {
+  "method": "POST",
+  "url": "http://<TCAD PC 주소>:8400/api/v1/tcad/verify",
+  "headers": {"X-Fab-Token": "<토큰>", "Content-Type": "application/json"},
+  "body": {
+   "request_id": "demo-tcadverify-0001",
+   "job_id": "13473eb7-77ca-4b5a-986e-d61d852b00c1",
+   "model_contract_version": "fab-ml-v1",
+   "source": "unity-demo",
+   "process_parameters": {"body_dose": 7012451980070.588, "epi_doping": 1.700308264843953e+16, "oxide_thickness": 0.06375244484559549},
+   "requested_outputs": ["vth", "gm", "id_on", "bv"],
+   "predicted_outputs": {"vth": 2.229239403146319, "gm": 4.455710910599901, "id_on": 5.149798738387415, "bv": 41.806859401502024}
+  }
+ },
+
+ "2_응답_접수_202": {
+  "request_id": "demo-tcadverify-0001",
+  "job_id": "13473eb7-77ca-4b5a-986e-d61d852b00c1",
+  "status": "queued",
+  "queue_position": 1,
+  "estimated_seconds": 5400,
+  "accepted_at": "2026-10-22T15:17:46+09:00"
+ },
+
+ "2-1_폴링_running_예시": {
+  "request_id": "demo-tcadverify-0001",
+  "job_id": "13473eb7-77ca-4b5a-986e-d61d852b00c1",
+  "status": "running",
+  "progress": {"stage": "iv", "stages": [{"stage": "iv", "status": "running", "seconds": 0}]},
+  "started_at": "2026-10-22T15:17:46+09:00"
+ },
+
+ "3_결과_succeeded": {
+  "비고": "2026-10-22 15:38:19 완료. 실제 Silvaco 계산 (IV 301.8초 + BV 930.8초, 총 약 20.5분).",
+  "request_id": "demo-tcadverify-0001",
+  "job_id": "13473eb7-77ca-4b5a-986e-d61d852b00c1",
+  "status": "succeeded",
+  "result_payload": {"vth": 2.2298657718120802, "gm": 4.469999999999995, "id_on": 5.1499999999999995, "bv": 41.808358194384404},
+  "metadata": {
+   "units": {"vth": "V", "gm": "uS/um", "id_on": "uA/um", "bv": "V"},
+   "id_conditions": {"vgs_v": 4.0, "vds_v": 0.1, "temperature_c": 26.85},
+   "bv_criterion": "1e-9 A/um", "leakage_a_per_um": 5.176e-16,
+   "seconds_iv": 301.8, "seconds_bv": 930.8, "attempts": 1, "mesh_factor": 1.0, "sweep_v": 4.0, "warnings": []
+  },
+  "finished_at": "2026-10-22T15:38:19+09:00",
+  "prediction_error": {"vth": -0.000626, "gm": -0.014289, "id_on": -0.000201, "bv": -0.001499}
+ },
+
+ "4_Gateway가_합성해_Unity로_보내는_최종_승인화면_형태": {
+  "request_id": "demo-tcadverify-0001",
+  "lot_id": "LOT-001",
+  "source_diagnosis_request_id": "a4444444-0000-0000-0000-000000000004",
+  "route": "tcad_verify",
+  "tcad_status": "succeeded",
+  "spec_judgement": {
+   "vth_in_spec": true,
+   "bv_in_spec": true,
+   "overall": "pass"
+  },
+  "prediction_error": {"vth": -0.000626, "gm": -0.014289, "id_on": -0.000201, "bv": -0.001499, "비고": "예측(서로게이트) - TCAD 실측. 모두 0에 가까워 서로게이트 예측이 실제 TCAD 와 잘 맞았다"},
+  "requires_human_approval": true,
+  "approval_status": "pending",
+  "note": "Unity 화면에는 decision.top_category_label(원인=산화막), compensation.target_process_parameters(보정안), spec_judgement(규격 통과), prediction_error(예측-실측 거의 0) 를 함께 보여주고 엔지니어 승인 버튼으로 approval_status 를 바꾼다."
+ }
+}

@@ -1,0 +1,7 @@
+sample_id,label,body_dose_cm2,epi_doping_cm3,oxide_thickness_um,vth_V,gm_uS_per_um,id_on_uA_per_um,bv_V,n_wafers,expected_anomaly_detected,expected_top_category,expected_top_probability,expected_route,expected_high_confidence,note
+normal_01,normal,7.7e+12,1.7e+16,0.06,2.25829,4.5730,5.2070,41.117,100,false,normal,1.00,no_action,false,TCAD run 001 (reference process)
+problem_01,problem,7.88865e+12,1.70323e+16,0.074994,2.93128,3.7400,3.3270,44.168,100,true,oxide,0.96,tcad_verify,false,"TCAD run 151 (oxide thickness +25 percent, other two normal)"
+apply_01,problem,,,,2.63,4.064,4.173,42.98,25,true,oxide,0.9417,apply,true,"모델 직접 호출 예시(특정 TCAD 학습 포인트와 연결되지 않음). 보정량이 15% 이내라 TCAD 재검증을 생략하는 경로를 보여주기 위한 샘플"
+dose_01,problem,1.001e+13,1.7e+16,0.06,2.77715,4.3100,4.0450,41.394,25,true,dose,0.9459,tcad_verify,false,"학습데이터_최종.csv S_dose_1.3 (도즈 단일 노브 +30%)"
+epi_01,problem,7.7e+12,2.21e+16,0.06,2.18417,4.8000,5.7540,35.961,25,true,epi,0.9429,tcad_verify,false,"학습데이터_최종.csv S_epi_1.3 (에피 단일 노브 +30%). BV 가 규격(40V) 밖으로 벗어나지만 에피는 레시피로 제어 불가 → 보정은 도즈/산화막만, BV 는 보정되지 않는다는 경고 포함"
+poorfit_01,problem,2.31e+12,1.7e+16,0.06,0.12760,5.4900,8.4140,,25,true,,,manual,false,"학습데이터_최종.csv S_dose_0.3 (도즈 단일 노브 -70%, 외삽시험용=Y, 학습 영역 밖). decided=false, POOR_FIT 로 사람 판단 필요"

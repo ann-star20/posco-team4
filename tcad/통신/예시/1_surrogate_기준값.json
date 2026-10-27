@@ -1,0 +1,114 @@
+{
+ "요청": {
+  "schema_version": 1,
+  "task_type": "surrogate",
+  "request_id": "a1111111-0000-0000-0000-000000000001",
+  "job_id": "13473eb7-77ca-4b5a-986e-d61d852b00c1",
+  "run_id": "fcd65345-9f6a-454e-80fd-17b7fd6d175c",
+  "lot_id": "LOT-001",
+  "attempt": 1,
+  "model_contract_version": "fab-ml-v1",
+  "surrogate_mode": "prod",
+  "input_payload": {
+   "process_parameters": {
+    "body_dose": 7700000000000.0,
+    "epi_doping": 1.7e+16,
+    "oxide_thickness": 0.06
+   },
+   "requested_outputs": [
+    "vth",
+    "gm",
+    "id_on",
+    "bv"
+   ]
+  }
+ },
+ "응답_HTTP": 200,
+ "응답": {
+  "request_id": "a1111111-0000-0000-0000-000000000001",
+  "job_id": "13473eb7-77ca-4b5a-986e-d61d852b00c1",
+  "model_contract_version": "fab-ml-v1",
+  "model_version": "mosfet-gp-2026-10-18",
+  "result_origin": "prod",
+  "status": "succeeded",
+  "anomaly_detected": false,
+  "result_payload": {
+   "vth": 2.260060537873921,
+   "gm": 4.599146017580433,
+   "id_on": 5.207198933510313,
+   "bv": 41.115015149730255
+  },
+  "metadata": {
+   "input_transform_version": "gp-transform-v1",
+   "input_ratios": {
+    "dose": 1.0,
+    "epi": 1.0,
+    "tox": 1.0
+   },
+   "in_domain": true,
+   "id_conditions": {
+    "vgs_v": 4.0,
+    "vds_v": 0.1,
+    "temperature_c": 26.85
+   },
+   "units": {
+    "vth": "V",
+    "gm": "uS/um",
+    "id_on": "uA/um",
+    "bv": "V"
+   },
+   "models": {
+    "vth_gm": "gp-stage1-matern52-ard",
+    "id_on": "gp-stage2-vth-input",
+    "bv": "gp-bv-raw-input"
+   },
+   "sigma": {
+    "vth": 0.0014256441100678667,
+    "gm": 0.026680006775283458,
+    "id_on": 0.00428902608940689,
+    "bv": 0.009985734417221238
+   },
+   "spec": {
+    "vth_min": 1.7,
+    "vth_max": 2.6,
+    "bv_min": 40.0,
+    "status": "datasheet_AOI4184"
+   },
+   "processing_ms": 0.78,
+   "model": {
+    "name": "mosfet-gp-surrogate",
+    "version": "2026-10-18",
+    "artifact_hash": "sha256:f674b7a536f6a42d7e6dbf4b648fc5465de5f7fefea653280177c247dcdf7eeb",
+    "training_data_version": "tcad-train-8d189967db61",
+    "git_commit": null,
+    "runtime": "python-3.14",
+    "device": "cpu",
+    "precision": "float64"
+   },
+   "timing_ms": {
+    "request_validation": 0.033,
+    "inference_total": 0.688,
+    "postprocessing": 0.027,
+    "service_total": 0.78
+   },
+   "stages": [
+    {
+     "stage": "request_validation",
+     "status": "succeeded",
+     "duration_ms": 0.033
+    },
+    {
+     "stage": "inference",
+     "status": "succeeded",
+     "duration_ms": 0.688
+    },
+    {
+     "stage": "postprocessing",
+     "status": "succeeded",
+     "duration_ms": 0.027
+    }
+   ]
+  },
+  "tcad_proposal": null
+ }
+}

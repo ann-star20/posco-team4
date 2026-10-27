@@ -1,0 +1,8 @@
+# 필수 (기본 모드 2단 GP + 진단)
+numpy
+# (이 PC 의 시험 환경: Python 3.14, NumPy 2.5.1. Jetson 의 Python/NumPy 버전은 아직 시험하지 못했다. Python 3.8 문법 호환은 번들 만들 때 검사한다.)
+
+# 선택 (고정밀 모드: GP + TabPFN). 없어도 서비스는 기본 모드로 정상 동작한다.
+# torch      -> JetPack 에 맞는 NVIDIA 제공 휠을 설치할 것 (pip 의 일반 torch 는 Jetson GPU 를 쓰지 못할 수 있다)
+# tabpfn==9.2.0
+# 가중치 파일은 최종ML/모델/tabpfn/ 에 들어 있다 (인터넷 없이 쓴다)

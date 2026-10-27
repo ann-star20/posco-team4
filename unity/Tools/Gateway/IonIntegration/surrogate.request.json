@@ -1,0 +1,100 @@
+{
+  "type": "surrogate.requested",
+  "schema_version": 1,
+  "request_id": "b72ffebb-5fa6-4256-9576-79bc4f86883f",
+  "run_id": "9c6137ea-5a91-4f20-8a03-2e14602b9434",
+  "lot_id": "LOT-UNITY-ION-INTEGRATION-TEST",
+  "unit_id": "SIM-IMP01-WAFER13",
+  "stage_id": "ion_implantation",
+  "stage_attempt": 1,
+  "model_contract_version": "fab-ml-v1",
+  "input_payload": {
+    "process_parameters": {
+      "body_dose": 7700000000000.0,
+      "epi_doping": 17000000000000000.0,
+      "oxide_thickness": 0.06
+    },
+    "requested_outputs": [
+      "vth",
+      "gm",
+      "id_on",
+      "bv"
+    ],
+    "provenance": {
+      "equipment_id": "IMP-01",
+      "completed_dose_cm2": 7700000000000.0,
+      "data_source": "simulation",
+      "sample_id": "",
+      "csv_sha256": "",
+      "electrical_source": "surrogate_prediction_not_measurement",
+      "inspection_id": "214946c57d93462c86ec0577a89b945a",
+      "dose_unit": "cm^-2",
+      "epi_unit": "cm^-3",
+      "oxide_unit": "um",
+      "process_origin": "completed_ion_dose_and_registered_lot_context",
+      "scene_thickness_origin": "simulation",
+      "condition_source": "integration test of TCAD reference 7.7e12 / 1.7e16 / 0.06 um; simulated input, not a Unity runtime inspection or hardware measurement",
+      "tcad": {
+        "purpose": "tcad_candidate_prediction_for_gateway_forwarding",
+        "recipient": "gateway_team",
+        "diagnosis_source": "separate_legacy_diagnostic_worker",
+        "diagnosis_request_id": "",
+        "proposal_id": "",
+        "diagnosis_model": "",
+        "diagnosis_mode": "",
+        "legacy_top_cause_ko": "",
+        "review_note": "",
+        "warning": "",
+        "cause_probability": 0.0,
+        "dose_factor": 0.0,
+        "oxide_factor": 0.0,
+        "estimated_before": {
+          "body_dose": 0.0,
+          "epi_doping": 0.0,
+          "oxide_thickness": 0.0
+        },
+        "exploratory_only": false,
+        "approved": false,
+        "applied": false,
+        "parent_gateway_request_id": "",
+        "parent_gateway_run_id": "",
+        "parent_gateway_job_id": "",
+        "predicted_outputs_source": "matching surrogate.completed payload.response.result_payload; not a TCAD result",
+        "tcad_setup": {
+          "deck": "최종_trench_template.in",
+          "athena_atlas": "DeckBuild 5.0.10.R / Atlas 5.28.1.R",
+          "fixed": {
+            "diffusion_time_min": 30,
+            "diffusion_temp_c": 1100,
+            "source_drain_doping": "arsenic 5e15 cm^-2"
+          },
+          "device_temperature_k": 300.0,
+          "bias": {
+            "vd_v": 0.1,
+            "vg_sweep_v": [
+              0.0,
+              4.0
+            ]
+          },
+          "id_on_definition": "Id at Vg=4.0 V",
+          "width_normalization": "per 1 um of device width",
+          "bv_criterion": "leakage 1e-9 A/um",
+          "units": {
+            "gm": "uS/um",
+            "id_on": "uA/um",
+            "vth": "V",
+            "bv": "V"
+          }
+        },
+        "spec": {
+          "vth_min": 1.7,
+          "vth_max": 2.6,
+          "bv_min": 40.0,
+          "comparison_tolerance": 1E-06,
+          "gm_id_rule": "diagnostic_only_no_acceptance_limits"
+        }
+      },
+      "scene_readings_nm": []
+    }
+  }
+}

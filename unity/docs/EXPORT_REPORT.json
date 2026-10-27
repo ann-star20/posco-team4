@@ -1,0 +1,52 @@
+{
+  "created_at": "2026-10-24T18:18:57.285891+09:00",
+  "source_project": "UnityMOSFETFactory",
+  "main_scene": "Assets/MOSFETInspection/Scenes/MOSFETSmallFab_Corrected.unity",
+  "unity_version": "6000.6.4f1",
+  "files_before_report": 1899,
+  "csharp_files": 144,
+  "blender_sources": 20,
+  "bytes_before_report": 102857029,
+  "credential_redaction_files": [],
+  "checks": {
+    "python_syntax": "passed",
+    "known_credentials_absent": "passed",
+    "private_keys_absent": "passed",
+    "asset_meta_pairs": "passed",
+    "removed_asset_guid_references": "none",
+    "local_packages_present": "passed",
+    "files_at_or_above_100_MiB": [],
+    "unity_package_guids_resolved_from_current_cache": 484,
+    "preexisting_unresolved_guids": [
+      "48e911a1e337b44e2b85dbc65b47a594",
+      "879ffae44eefa4412bb327928f1a96dd"
+    ],
+    "fresh_unity_import_play": "not_run",
+    "live_server_requests": "not_sent",
+    "powershell_syntax": {
+      "files": 35,
+      "status": "passed"
+    },
+    "current_scene_matches_saved_original": true,
+    "all_144_csharp_sources_match_original": true,
+    "additional_api_key_format_scan": "no_findings",
+    "preexisting_unresolved_guid_context": "Two entries in HDRenderPipelineGlobalSettings.m_ObsoleteDiffusionProfileSettingsList. Same unresolved references exist in original; preserved."
+  },
+  "snapshot_only_adjustments": [
+    "Default build scene set to current factory",
+    "Personal Unity cloud project metadata cleared",
+    "Unused legacy volume profile sample cubemap detached",
+    "No one-shot action markers included",
+    "Actual local credential files omitted; no known real tokens found in selected source files"
+  ],
+  "excluded": [
+    "Library/Temp/Logs/UserSettings",
+    "old scenes and backups",
+    "external factory template",
+    "local credentials",
+    "ML weights and remote deployment snapshots",
+    "EXE/venv/package build output",
+    "recordings and screenshots",
+    "most live request/event history"
+  ]
+}

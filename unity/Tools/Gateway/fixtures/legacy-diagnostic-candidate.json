@@ -1,0 +1,172 @@
+{
+    "type": "tcad.verification.package",
+    "created_at": "2026-10-21T12:44:14.0879723+00:00",
+    "inspection_id": "380696c576e2474ca761d32c6c6a28af",
+    "lot_id": "LOT-001",
+    "unit_id": "SIM-WAFER-380696c576e2474ca761d32c6c6a28af",
+    "schema_version": 1,
+    "data_source": "simulation",
+    "status": "awaiting_tcad_review",
+    "proposal_id": "REQ-5324918a02284ad2b100fe0372e9b6cd-proposal",
+    "gateway_request_id": "",
+    "gateway_run_id": "",
+    "gateway_job_id": "",
+    "candidate_basis": "posterior_mean_ratios_times_model_reference_then_correction_factors",
+    "dose_unit": "cm^-2",
+    "epi_unit": "cm^-3",
+    "oxide_unit": "um",
+    "approved": false,
+    "applied": false,
+    "review_note": "원인 불확실: 추가 측정 및 탐색용 TCAD 검토 후보. 권장 레시피나 승인값이 아님.",
+    "inspection": {
+        "inspection_id": "380696c576e2474ca761d32c6c6a28af",
+        "lot_id": "LOT-001",
+        "unit_id": "SIM-WAFER-380696c576e2474ca761d32c6c6a28af",
+        "equipment_id": "ELLIP-01",
+        "data_source": "simulation",
+        "completed_at": "2026-10-21T12:43:23.4055970+00:00",
+        "verdict": "PASS",
+        "thickness_points_nm": [
+            59.1719970703125,
+            59.1719970703125,
+            59.1719970703125
+        ],
+        "thickness_mean_nm": 59.1719970703125,
+        "oxide_thickness_um": 0.0591719970703125,
+        "electrical_source": "TCAD",
+        "csv_sample_id": "B081",
+        "csv_sha256": "1a6828a87faba5f93568b1e9a2b4f19b80a75d019505fc536390202e02d2df81",
+        "n_wafers": 1,
+        "has_csv_ratios": true,
+        "csv_dose_ratio": 1.6482000350952148,
+        "csv_epi_ratio": 0.7319999933242798,
+        "csv_oxide_ratio": 0.9861999750137329,
+        "reference_thickness_nm": 60.0,
+        "electrical": {
+            "vth_v": 3.273393392562866,
+            "gm_us_per_um": 3.8899997889529914,
+            "id4v_ua_per_um": 2.4739999844314298,
+            "bv_v": 50.44632339477539,
+            "has_bv": true,
+            "current_quantity": "id4v",
+            "original_gm_unit": "A/V/um",
+            "original_current_unit": "A/um"
+        }
+    },
+    "model_reference": {
+        "lot_id": "LOT-001",
+        "source": "gp-transform-v1 reference confirmed by Gateway input_ratios; CSV simulation ratios applied per inspection, not equipment measurements",
+        "dose_unit": "cm^-2",
+        "epi_unit": "cm^-3",
+        "body_dose": 7700000000000.0,
+        "epi_doping": 17000000000000000.0,
+        "oxide_reference_um": 0.06
+    },
+    "inspection_process_conditions": {
+        "body_dose": 12691140270233.154,
+        "epi_doping": 12443999886512756.0,
+        "oxide_thickness": 0.0591719970703125
+    },
+    "estimated_before": {
+        "body_dose": 11368118584156.037,
+        "epi_doping": 12745984375476838.0,
+        "oxide_thickness": 0.0636522102355957
+    },
+    "candidate_after": {
+        "body_dose": 9662901067569.7,
+        "epi_doping": 12745984375476838.0,
+        "oxide_thickness": 0.05410438021784329
+    },
+    "diagnosis": {
+        "lot_id": "LOT-001",
+        "run_id": "REQ-5324918a02284ad2b100fe0372e9b6cd",
+        "proposal_id": "REQ-5324918a02284ad2b100fe0372e9b6cd-proposal",
+        "baseline_version": "tcad-gp-c02d4f1724f0",
+        "model_version": "agent-4a48af6681a3",
+        "data_source": "synthetic",
+        "delivery": "computed",
+        "mode": "gp_tabpfn",
+        "request_id": "REQ-5324918a02284ad2b100fe0372e9b6cd",
+        "decision": "ambiguous",
+        "top_cause": "도즈+에피+산화막",
+        "recommendation": "웨이퍼 1장 → 4장",
+        "warning": "에피가 벗어났을 가능성이 높다: 에피는 제어할 수 없어 BV 는 보정되지 않는다",
+        "tcad_status": "not_run",
+        "decided": false,
+        "applied": false,
+        "top_probability": 0.5986652970314026,
+        "dose_factor": 0.8500000238418579,
+        "oxide_factor": 0.8500000238418579,
+        "estimated_dose": 1.4763790369033813,
+        "estimated_epi": 0.7497637867927551,
+        "estimated_oxide": 1.0608701705932617,
+        "duration_seconds": 21.10804557800293,
+        "generated_at_ms": 1792586591978,
+        "sent_at_ms": 1792586591978,
+        "basic_candidates": [
+            {
+                "name": "정상",
+                "probability": 0.0
+            },
+            {
+                "name": "도즈",
+                "probability": 0.0
+            },
+            {
+                "name": "에피",
+                "probability": 0.0
+            },
+            {
+                "name": "도즈+에피",
+                "probability": 0.3971175253391266
+            },
+            {
+                "name": "산화막",
+                "probability": 5.7104429519014025e-28
+            },
+            {
+                "name": "도즈+산화막",
+                "probability": 1.3535640207211056e-33
+            },
+            {
+                "name": "에피+산화막",
+                "probability": 0.002587931929156184
+            },
+            {
+                "name": "도즈+에피+산화막",
+                "probability": 0.6002945303916931
+            }
+        ],
+        "input": {
+            "request_id": "REQ-5324918a02284ad2b100fe0372e9b6cd",
+            "lot_id": "LOT-001",
+            "baseline_version": "tcad-gp-c02d4f1724f0",
+            "data_source": "synthetic",
+            "units": {
+                "vth": "V",
+                "gm": "A/V/um",
+                "id4v": "A/um",
+                "bv": "V"
+            },
+            "n_wafers": 1,
+            "sent_at_ms": 1792586603613,
+            "measurement": {
+                "vth": 3.273393392562866,
+                "gm": 0.000003889999788952991,
+                "id4v": 0.0000024739999844314298,
+                "bv": 50.44632339477539
+            }
+        }
+    },
+    "requested_outputs": [
+        "vth",
+        "gm",
+        "id_on",
+        "bv"
+    ],
+    "vth_min": 1.7000000476837158,
+    "vth_max": 2.5999999046325684,
+    "bv_min": 40.0,
+    "gm_id_rule": "diagnostic_only_no_acceptance_limits",
+    "tcad_setup": "TCAD engineer must identify device deck, solver version, bias conditions and width normalization; no deck is inferred by Unity"
+}

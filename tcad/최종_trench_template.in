@@ -1,0 +1,64 @@
+go athena
+
+# --- knobs: filled in by knob_link.py (values are real units, not ratios) ---
+set DOSE = {dose}
+set N_DRIFT = {epi}
+set DIFF_TIME = {diff}
+set TOX = {tox}
+
+# --- fixed geometry and mesh: never turn these into knobs ---
+line x loc=0.0 spac=0.02
+line x loc=1 spac=0.01
+line x loc=2 spac=0.03
+
+line y loc=-0.3 spac=0.02
+line y loc=0.0 spac=0.01
+line y loc=1 spac=0.01
+line y loc=1.3 spac=0.02
+line y loc=3 spac=0.1
+line y loc=4 spac=0.2
+
+init silicon c.phos=$N_DRIFT orientation=100 two.d
+implant boron dose=$DOSE energy=80 pearson
+diffuse time=$DIFF_TIME temp=1100
+implant arsenic dose=5e15 energy=40 pearson
+
+etch silicon start x=0.0 y=-0.3
+etch continue x=1 y=-0.3
+etch continue x=1 y=1.3
+etch continue x=0.0 y=1.3
+etch done
+
+deposit oxide thick=$TOX divisions=8
+deposit polysilicon thick=1 divisions=4
+etch polysilicon thick=1.2
+implant arsenic dose=5e15 energy=40 pearson
+
+structure outfile={tag}.str
+
+go atlas
+
+mesh infile={tag}.str
+
+electrode name=gate x.min=0.0 x.max=0.90 y.min=-1.0 y.max=1.2
+electrode name=source x.min=1.05 x.max=2 y.min=-0.4 y.max=-0.29
+electrode name=source x.min=2 x.max=2 y.min=-0.15 y.max=0.25
+electrode name=drain bottom
+
+contact name=gate n.poly
+
+doping uniform n.type conc=1e20 region=3
+
+models cvt srh auger bgn print
+impact selberherr
+
+method newton trap
+
+solve init
+solve vdrain=0.1
+
+log outf={tag}_iv.log
+
+solve vgate=0.0 vstep=0.1 vfinal=4.0 name=gate
+
+quit

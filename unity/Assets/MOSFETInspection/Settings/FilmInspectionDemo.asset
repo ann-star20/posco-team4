@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c9399ec78011de41879471826652f69, type: 3}
+  m_Name: FilmInspectionDemo
+  m_EditorClassIdentifier: Assembly-CSharp::FilmInspectionRecipe
+  targetNm: 60
+  lowerNm: 57
+  upperNm: 63
+  passDemo:
+  - 59.76
+  - 60.06
+  - 60.18
+  highDemo:
+  - 65.16
+  - 65.46
+  - 65.58
+  lowDemo:
+  - 54.36
+  - 54.66
+  - 54.78

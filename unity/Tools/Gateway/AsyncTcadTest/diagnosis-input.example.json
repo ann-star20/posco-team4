@@ -1,0 +1,10 @@
+{
+  "measurements": {
+    "vth": 2.874,
+    "gm": 3.767,
+    "id_on": 3.468,
+    "bv": 44.186
+  },
+  "n_wafers": 25,
+  "refine": false
+}

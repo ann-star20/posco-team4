@@ -1,0 +1,110 @@
+{
+    "scene": "Assets/MOSFETInspection/Scenes/MOSFETSmallFab_Corrected.unity",
+    "ports": [
+        {
+            "id": "STOCKER_IO",
+            "node": "FOUP_DockPoint",
+            "equipment": "Mini_Stocker_6Slot",
+            "position": {
+                "x": -9.467820167541504,
+                "y": 1.0999999046325684,
+                "z": -0.0038002729415893555
+            }
+        },
+        {
+            "id": "OX_LOADPORT",
+            "node": "OX_LOADPORT_01_Dock",
+            "equipment": "Oxidation_System_Integrated",
+            "position": {
+                "x": -5.752320289611816,
+                "y": 1.2150003910064697,
+                "z": 0.02499997615814209
+            }
+        },
+        {
+            "id": "ELLIP_LOADPORT",
+            "node": "FOUP_Dock_01",
+            "equipment": "Ellipsometer_System",
+            "position": {
+                "x": -1.0088201761245728,
+                "y": 1.2150002717971802,
+                "z": 0.029999852180480957
+            }
+        },
+        {
+            "id": "IMP_LOADPORT",
+            "node": "FOUP_Dock_02",
+            "equipment": "Ion_Implanter",
+            "position": {
+                "x": 4.127320289611816,
+                "y": 1.300000548362732,
+                "z": 0.22999989986419678
+            }
+        }
+    ],
+    "equipment": [
+        {
+            "name": "Mini_Stocker_6Slot",
+            "min": {
+                "x": -11.18781852722168,
+                "y": 0.0,
+                "z": -0.35000014305114746
+            },
+            "max": {
+                "x": -8.852319717407227,
+                "y": 3.068999767303467,
+                "z": 1.8461997509002686
+            }
+        },
+        {
+            "name": "Oxidation_System_Integrated",
+            "min": {
+                "x": -8.202320098876953,
+                "y": 0.0,
+                "z": -0.35000014305114746
+            },
+            "max": {
+                "x": -2.096320152282715,
+                "y": 3.745000123977661,
+                "z": 2.7549996376037598
+            }
+        },
+        {
+            "name": "Ellipsometer_System",
+            "min": {
+                "x": -1.646320104598999,
+                "y": 0.0,
+                "z": -0.35000014305114746
+            },
+            "max": {
+                "x": 1.5711798667907715,
+                "y": 2.804999828338623,
+                "z": 2.6374998092651367
+            }
+        },
+        {
+            "name": "Ion_Implanter",
+            "min": {
+                "x": 2.6973209381103516,
+                "y": 0.0,
+                "z": -0.35000014305114746
+            },
+            "max": {
+                "x": 8.202320098876953,
+                "y": 3.700000286102295,
+                "z": 5.550000190734863
+            }
+        }
+    ],
+    "floorMin": {
+        "x": -12.0,
+        "y": -0.20000000298023224,
+        "z": -6.0
+    },
+    "floorMax": {
+        "x": 9.0,
+        "y": 0.0,
+        "z": 6.0
+    },
+    "maxEquipmentHeight": 3.745000123977661
+}

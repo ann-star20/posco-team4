@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "type": "process_analysis",
+  "source": "process_ai",
+  "target": "unity",
+  "message_id": "fixture-1",
+  "payload": {
+    "lot_id": "JETSON-TEST-oxide_plus15",
+    "run_id": "FIXTURE-RUN",
+    "proposal_id": "FIXTURE-RUN-oxide_plus15",
+    "baseline_version": "FIXTURE-BASE",
+    "model_version": "FIXTURE-MODEL",
+    "data_source": "synthetic",
+    "delivery": "replay",
+    "mode": "gp_tabpfn",
+    "decision": "ambiguous",
+    "decided": false,
+    "top_cause": "에피+산화막",
+    "top_probability": 0.43992685426252826,
+    "dose_factor": 0.9849999999999999,
+    "oxide_factor": 0.88,
+    "estimated_dose": 1.013328600160805,
+    "estimated_epi": 1.0550216469706848,
+    "estimated_oxide": 1.1542941707414984,
+    "basic_candidates": [
+      {
+        "name": "에피+산화막",
+        "probability": 0.43991247208014045
+      },
+      {
+        "name": "도즈+에피+산화막",
+        "probability": 0.28667061804777255
+      },
+      {
+        "name": "산화막",
+        "probability": 0.13880403066450545
+      },
+      {
+        "name": "도즈+에피",
+        "probability": 0.07369807104325071
+      },
+      {
+        "name": "도즈+산화막",
+        "probability": 0.05992787907064132
+      },
+      {
+        "name": "도즈",
+        "probability": 0.0009869290936576087
+      },
+      {
+        "name": "에피",
+        "probability": 3.079854964014992e-14
+      },
+      {
+        "name": "정상",
+        "probability": 6.14042500435115e-42
+      }
+    ],
+    "recommendation": "웨이퍼 5장 → 20장",
+    "warning": "에피가 벗어났을 가능성이 높다: 에피는 제어할 수 없어 BV 는 보정되지 않는다",
+    "duration_seconds": 8.325148810999963,
+    "tcad_status": "not_run",
+    "applied": false,
+    "generated_at_ms": 1792342787431,
+    "sent_at_ms": 1792342787431
+  }
+}

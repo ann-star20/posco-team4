@@ -1,0 +1,155 @@
+{
+  "hidden_original_renderers": [
+    "Furnace_Control_Button",
+    "Furnace_Control_Button.001",
+    "Furnace_Control_Button.002",
+    "Furnace_Control_Button.003",
+    "Furnace_Control_Button.004",
+    "Furnace_Control_Button.005",
+    "Furnace_Control_Panel",
+    "Furnace_Control_Selector",
+    "Furnace_Control_Selector.001",
+    "Furnace_Control_Selector.002",
+    "Furnace_EStop_Button",
+    "Furnace_EStop_Collar",
+    "Furnace_HMI_Bezel",
+    "Furnace_HMI_Screen",
+    "Furnace_Left_Control_Column",
+    "Furnace_Loading_Frame",
+    "Furnace_Loading_Frame.001",
+    "Furnace_Mimic_Key",
+    "Furnace_Mimic_Key.001",
+    "Furnace_Mimic_Key.002",
+    "Furnace_Mimic_Key.003",
+    "Furnace_Mimic_Key.004",
+    "Furnace_Mimic_Key.005",
+    "Furnace_Mimic_Key.006",
+    "Furnace_Mimic_Key.007",
+    "Furnace_Mimic_Key.008",
+    "Furnace_Mimic_Key.009",
+    "Furnace_Mimic_Key.010",
+    "Furnace_Mimic_Key.011",
+    "Furnace_Mimic_Key.012",
+    "Furnace_Mimic_Key.013",
+    "Furnace_Mimic_Key.014",
+    "Furnace_Upper_Cabinet",
+    "Furnace_Loading_Door_Panel",
+    "Furnace_Lamp_Amber",
+    "Furnace_Lamp_Blue",
+    "Furnace_Lamp_Green",
+    "Furnace_Lamp_Red",
+    "Furnace_Tower_Stem"
+  ],
+  "materials": [
+    {
+      "name": "OXD_White",
+      "color": [
+        0.8,
+        0.83,
+        0.85
+      ],
+      "metallic": 0.08,
+      "smoothness": 0.4
+    },
+    {
+      "name": "OXD_Graphite",
+      "color": [
+        0.035,
+        0.045,
+        0.055
+      ],
+      "metallic": 0.2,
+      "smoothness": 0.4
+    },
+    {
+      "name": "OXD_Steel",
+      "color": [
+        0.42,
+        0.48,
+        0.53
+      ],
+      "metallic": 0.75,
+      "smoothness": 0.65
+    },
+    {
+      "name": "OXD_Quartz",
+      "color": [
+        0.54,
+        0.7,
+        0.76
+      ],
+      "metallic": 0.1,
+      "smoothness": 0.65
+    },
+    {
+      "name": "OXD_Insulation",
+      "color": [
+        0.74,
+        0.72,
+        0.66
+      ],
+      "metallic": 0,
+      "smoothness": 0.15
+    },
+    {
+      "name": "OXD_Heater",
+      "color": [
+        0.25,
+        0.27,
+        0.29
+      ],
+      "metallic": 0.6,
+      "smoothness": 0.45
+    },
+    {
+      "name": "OXD_Screen",
+      "color": [
+        0.025,
+        0.13,
+        0.23
+      ],
+      "metallic": 0.1,
+      "smoothness": 0.7
+    },
+    {
+      "name": "OXD_ScreenInk",
+      "color": [
+        0.25,
+        0.6,
+        0.75
+      ],
+      "metallic": 0.05,
+      "smoothness": 0.5
+    },
+    {
+      "name": "OXD_Red",
+      "color": [
+        0.65,
+        0.025,
+        0.015
+      ],
+      "metallic": 0.1,
+      "smoothness": 0.4
+    },
+    {
+      "name": "OXD_Yellow",
+      "color": [
+        0.85,
+        0.5,
+        0.02
+      ],
+      "metallic": 0,
+      "smoothness": 0.35
+    }
+  ],
+  "anchor_names": [
+    "Wafer_Robot_ROOT",
+    "Unity_Boat_Load_Contact",
+    "REF_LP2_Door_ANIM",
+    "Boat_Up_Target"
+  ],
+  "loader_objects_unchanged": 565,
+  "added_meshes": 115,
+  "source_file": "C:\\Users\\Administrator\\Documents\\Codex\\UnityMOSFETFactory\\Blender\\Before_Ellipsometer_Recovery.blend",
+  "note": "Approved project concept; not an exact commercial product replica"
+}

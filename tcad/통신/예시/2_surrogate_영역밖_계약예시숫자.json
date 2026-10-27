@@ -1,0 +1,74 @@
+{
+ "요청": {
+  "schema_version": 1,
+  "task_type": "surrogate",
+  "request_id": "a1111111-0000-0000-0000-000000000002",
+  "job_id": "13473eb7-77ca-4b5a-986e-d61d852b00c1",
+  "run_id": "fcd65345-9f6a-454e-80fd-17b7fd6d175c",
+  "lot_id": "LOT-001",
+  "attempt": 1,
+  "model_contract_version": "fab-ml-v1",
+  "surrogate_mode": "prod",
+  "input_payload": {
+   "process_parameters": {
+    "body_dose": 12000000000000.0,
+    "epi_doping": 2500000000000000.0,
+    "oxide_thickness": 5.2
+   },
+   "requested_outputs": [
+    "vth",
+    "gm",
+    "id_on",
+    "bv"
+   ]
+  }
+ },
+ "응답_HTTP": 200,
+ "응답": {
+  "request_id": "a1111111-0000-0000-0000-000000000002",
+  "job_id": "13473eb7-77ca-4b5a-986e-d61d852b00c1",
+  "model_contract_version": "fab-ml-v1",
+  "model_version": "mosfet-gp-2026-10-18",
+  "result_origin": "prod",
+  "status": "failed",
+  "anomaly_detected": null,
+  "result_payload": null,
+  "error": {
+   "code": "OUT_OF_DOMAIN",
+   "message": "입력이 서로게이트 학습 영역 밖이다. 단위(도즈 cm^-2, 에피 cm^-3, 산화막 um)와 값을 확인하라."
+  },
+  "error_code": "OUT_OF_DOMAIN",
+  "error_message": "입력이 서로게이트 학습 영역 밖이다. 단위(도즈 cm^-2, 에피 cm^-3, 산화막 um)와 값을 확인하라.",
+  "metadata": {
+   "input_transform_version": "gp-transform-v1",
+   "model": {
+    "name": "mosfet-gp-surrogate",
+    "version": "2026-10-18",
+    "artifact_hash": "sha256:f674b7a536f6a42d7e6dbf4b648fc5465de5f7fefea653280177c247dcdf7eeb",
+    "training_data_version": "tcad-train-8d189967db61",
+    "git_commit": null,
+    "runtime": "python-3.14",
+    "device": "cpu",
+    "precision": "float64"
+   },
+   "timing_ms": {
+    "service_total": 0.66
+   },
+   "stages": [
+    {
+     "stage": "domain_check",
+     "status": "failed",
+     "duration_ms": 0.66,
+     "error_code": "OUT_OF_DOMAIN"
+    }
+   ],
+   "input_ratios": {
+    "dose": 1.558442,
+    "epi": 0.147059,
+    "tox": 86.666667
+   },
+   "in_domain": false
+  },
+  "tcad_proposal": null
+ }
+}
