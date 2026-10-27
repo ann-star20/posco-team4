@@ -69,10 +69,23 @@ sudo ./install_service.sh uninstall
 - **서비스 시작과 Worker 대역 호출**: `run_service.py` 로 켜고 `worker_stub.py` 를 돌려 10개 항목 모두 통과. 서비스는 같은 장치 안에서 surrogate 6 ms, 진단 3.8 초로 응답
 - **속도(`jetson_벤치.py`)**: aarch64, CPU 6코어. 1점 예측 지연 0.86 ms, 1만 점 0.49 초, 10만 점 4.32 초 (이 PC 3.9~7.4 초와 비슷)
 - `install_service.sh`: 처음 실행했을 때 서비스를 터미널에서 직접 켜 둔 상태라 8300 포트가 사용 중이어서 사전 점검에서 멈췄다 (스크립트가 의도한 안전장치). 직접 켠 서비스를 Ctrl+C 로 끈 뒤 다시 실행하면 된다. 이 경우를 더 알기 쉽게 안내하도록 스크립트를 고쳤다
-- 아직 확인하지 못한 것: 실제 Worker 연동, `install_service.sh` 의 등록과 자동 시작 (위 이유로 아직 끝까지 실행되지 않았다), 고정밀 모드
+- 아직 확인하지 못한 것: 실제 Worker 연동, `install_service.sh` 의 등록과 자동 시작 (위 이유로 아직 끝까지 실행되지 않았다)
+- 고정밀 모드: 격리 venv(`--system-site-packages` + `tabpfn` + `numpy<2`)로 설치 후 end-to-end 확인 완료 — `refine.performed=true`, `model_mode="고정밀(GP+TabPFN)"` (아래 "고정밀 모드" 절 참고)
 
 ## 고정밀 모드 (선택)
 `torch`(JetPack 용 NVIDIA 휠)와 `tabpfn==9.2.0` 이 설치되어 있고, torch 가 설치된 NumPy 버전과 맞으면 (NumPy 1.x 용 torch 는 NumPy 2.x 와 맞지 않으니 필요하면 `pip3 install 'numpy<2'`, 이 번들 코드는 NumPy 2.x 전용 함수를 쓰지 않지만 NumPy 1.x 에서의 실행 시험은 하지 못했다) `diagnose` 에 `"refine": true` 를 보냈을 때 GP + TabPFN 으로 한 번 더 확인한다. 설치되어 있지 않아도 기본 모드로 정상 동작하고 응답의 `refine.performed` 가 false 로 표시된다. 가중치 파일이 없으면 인터넷을 찾지 않고 바로 기본 모드로 되돌아간다.
+
+Gateway 는 `diagnose` 요청마다 `input_payload.refine` 을 `true` 로 강제한다 (`gate_workspace/services/event_gateway/src/event_gateway/app.py`) — 즉 **Jetson 에 TabPFN 이 없으면 모든 진단이 조용히 기본 모드로만 돌게 된다.** "Jetson 에서 확인된 것"에 적힌 대로 시스템 torch 가 NumPy 1.x 용이라 그냥 `pip3 install tabpfn 'numpy<2'` 를 시스템 환경에 하면 ABI 가 깨져 `RuntimeError: Numpy is not available` 로 refine 요청이 실패한다. 아래처럼 **격리된 venv** 를 쓰면 기존 Jetson 빌드 torch/CUDA 는 그대로 재사용하면서 TabPFN 만 추가할 수 있다.
+
+```bash
+cd /opt/fabrx
+python3 -m venv --system-site-packages .venv-highprec
+source .venv-highprec/bin/activate
+pip install tabpfn 'numpy<2'     # venv 안에서만 numpy<2 로 고정, 시스템 torch/CUDA 는 그대로 상속
+python3 check_env.py --smoke     # 고정밀 경로까지 확인
+deactivate
+```
+`run_service.py` 를 이 venv 의 `python3` (예: `/opt/fabrx/.venv-highprec/bin/python3`) 로 실행하도록 `fabrx-model.service.template` 의 `ExecStart` 경로만 바꿔주면 systemd 등록도 그대로 쓸 수 있다. 정상 동작 시 응답에 `refine.performed=true`, `refine.model_mode="고정밀(GP+TabPFN)"` 이 찍힌다.
 
 ## 값을 바꿔야 할 때
 `통신/변환기.py` 맨 위 상수만 고친다: 기준값, 단위, Id 조건(Vgs, Vds, 온도), 이상 판정 스펙. 고친 뒤 `python3 check_env.py` 는 "번들과 내용이 다른 코드 파일"을 참고로만 알리고 통과시킨다 (모델 파일이 달라졌을 때만 실패). 새 모델이 나오면 `최종ML/모델/` 을 통째로 교체한다.
