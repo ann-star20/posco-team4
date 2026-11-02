@@ -1,0 +1,61 @@
+{
+  "type": "aoi.inspection.completed",
+  "schema_version": 1,
+  "message_id": "ba0ab19b-ad2c-48d1-b8d5-717c5c223582",
+  "request_id": "d040b89f-ad6c-420e-a7e4-35abd80901ee",
+  "job_id": "eabbfafc-c826-4c40-83e7-3f1ce9ddf2cd",
+  "run_id": "e0741b08-d00c-4536-884c-8e57725a9342",
+  "lot_id": "UNITY-DIRECT-TEST",
+  "unit_id": "MOSFET-TEST-1",
+  "attempt": 1,
+  "device_id": "jetson-orin-nano",
+  "result_origin": "mock",
+  "verdict": "fail",
+  "defect_detected": true,
+  "processing_ms": 616.53,
+  "thresholds": {
+    "part_conf": 0.35,
+    "defect_conf": 0.2,
+    "part_iou": 0.45,
+    "defect_iou": 0.35
+  },
+  "parts": [
+    {
+      "class_id": 0,
+      "class_name": "body",
+      "confidence": 0.97,
+      "bbox_xyxy": [
+        5.0,
+        5.0,
+        120.0,
+        120.0
+      ]
+    }
+  ],
+  "defects": [
+    {
+      "class_id": 0,
+      "class_name": "crash",
+      "confidence": 0.92,
+      "bbox_xyxy": [
+        10.0,
+        10.0,
+        80.0,
+        80.0
+      ]
+    }
+  ],
+  "image": {
+    "image_id": "61fddd60-e35c-423c-923c-6a582a784603",
+    "frame_role": "annotated",
+    "mime_type": "image/jpeg",
+    "file_name": "annotated.jpg",
+    "byte_length": 1286928,
+    "sha256": "e745f075b5e2ff159bb82f76ca1d943aee8dbe4493741f923d59697ac998d0ef",
+    "width": 3024,
+    "height": 4032,
+    "jetson_path": "/home/jetson/project/smart_factory/jetson_ws/result/aoi/eabbfafc-c826-4c40-83e7-3f1ce9ddf2cd/1/annotated.jpg",
+    "binary_frame_follows": true
+  },
+  "occurred_at": "2026-10-19T05:00:49.946666+00:00"
+}

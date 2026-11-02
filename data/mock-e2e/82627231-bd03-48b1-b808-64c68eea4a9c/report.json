@@ -1,0 +1,86 @@
+{
+  "run_id": "82627231-bd03-48b1-b808-64c68eea4a9c",
+  "schema": "test_e2e_0b7487945a9d4d6086fcfa95f2b4f4c3",
+  "status": "passed",
+  "output_dir": "/mnt/c/posco_project/data/mock-e2e/82627231-bd03-48b1-b808-64c68eea4a9c",
+  "ros_preflight": {
+    "success": false,
+    "publisher": "discovery 8.024 subscribers 0",
+    "subscriber": "",
+    "errors": ""
+  },
+  "jobs": [
+    {
+      "job_id": "82f7c7fc-1f64-496a-8bdb-878eea585c17",
+      "status": "completed",
+      "result_event_id": "f84e4b00-6e98-5e4f-8bff-6df9773a1875"
+    },
+    {
+      "job_id": "17c52a5a-7f82-42e7-a11d-a96df1921599",
+      "status": "completed",
+      "result_event_id": "ad6b67a9-4577-54d7-90f0-b705e6d73b2c"
+    },
+    {
+      "job_id": "388d6a45-da96-4a61-bcd2-140d70a6aff9",
+      "status": "failed",
+      "result_event_id": "90fd2020-82ad-519c-9bbb-ca098cc3b202"
+    },
+    {
+      "job_id": "aa1ba4ca-21b0-4e17-ad37-bc60b3c53e71",
+      "status": "completed",
+      "result_event_id": "2ce797f8-ad21-5010-ab94-eb3f5ae74fc9"
+    },
+    {
+      "job_id": "b95c2d7c-c29e-4b70-8e96-284b1ec4135e",
+      "status": "completed",
+      "result_event_id": "5f119e25-6fb6-59c9-a4ca-e7dd125c6330"
+    }
+  ],
+  "elapsed_seconds": 116.56,
+  "events": [
+    {
+      "type": "aoi.inspection.completed",
+      "sequence": 1
+    },
+    {
+      "type": "surrogate.completed",
+      "sequence": 2
+    },
+    {
+      "type": "surrogate.completed",
+      "sequence": 3
+    },
+    {
+      "type": "verification.accepted",
+      "sequence": 4
+    },
+    {
+      "type": "correction.verified",
+      "sequence": 5
+    },
+    {
+      "type": "surrogate.completed",
+      "sequence": 6
+    },
+    {
+      "type": "correction.approved",
+      "sequence": 7
+    },
+    {
+      "type": "correction.applied",
+      "sequence": 8
+    },
+    {
+      "type": "surrogate.completed",
+      "sequence": 9
+    }
+  ],
+  "checks": [
+    "AOI ROS/JPG/DB/ACK",
+    "ML normal/anomaly/missing/failed",
+    "TCAD HTTP exactly one job",
+    "human approval fixture",
+    "Unity WS apply/duplicate ACK",
+    "HTTP/WS replay"
+  ]
+}

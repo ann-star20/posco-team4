@@ -1,0 +1,19 @@
+INFO:     Started server process [1791]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:47065 (Press CTRL+C to quit)
+INFO:     127.0.0.1:46584 - "GET /health/live HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46614 - "WebSocket /api/v1/commands?run_id=f748f2ce-746d-4edb-8747-fba320005c7d" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:46600 - "POST /api/v1/surrogate-jobs HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:46584 - "POST /api/v1/inspection-jobs HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:46602 - "POST /api/v1/surrogate-jobs HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:46592 - "POST /api/v1/surrogate-jobs HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:46594 - "POST /api/v1/surrogate-jobs HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:46584 - "POST /api/v1/surrogate-jobs HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:46618 - "WebSocket /api/v1/stream?run_id=f748f2ce-746d-4edb-8747-fba320005c7d" [accepted]
+INFO:     connection open
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [1791]

@@ -1,0 +1,10 @@
+INFO:     Started server process [440]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:44741 (Press CTRL+C to quit)
+INFO:     127.0.0.1:48206 - "POST /api/v1/verifications HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:48218 - "GET /api/v1/verifications/2c2469ee-a20f-45ba-823a-637a433d2f63 HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [440]

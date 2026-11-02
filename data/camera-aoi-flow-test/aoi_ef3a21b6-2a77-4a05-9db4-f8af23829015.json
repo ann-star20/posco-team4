@@ -1,0 +1,94 @@
+{
+  "type": "aoi.inspection.completed",
+  "schema_version": 1,
+  "message_id": "b2d799f4-5cdc-4e4c-a1b7-0f6ba44bf981",
+  "request_id": "09d8bc54-5a78-4b3a-8ab3-1f093474dcd2",
+  "job_id": "ef3a21b6-2a77-4a05-9db4-f8af23829015",
+  "run_id": "b8e68493-4b20-4557-a5ab-aad50912bb0d",
+  "lot_id": "UNITY-CAMERA-TEST",
+  "unit_id": "MOSFET-TEST-1",
+  "attempt": 1,
+  "device_id": "jetson-orin-nano-1",
+  "result_origin": "prod",
+  "verdict": "fail",
+  "defect_detected": true,
+  "processing_ms": 10134.497,
+  "thresholds": {
+    "defect_conf": 0.2,
+    "defect_iou": 0.35,
+    "part_conf": 0.35,
+    "part_iou": 0.45
+  },
+  "parts": [
+    {
+      "class_id": 0,
+      "class_name": "body",
+      "confidence": 0.9818082451820374,
+      "bbox_xyxy": [
+        1197.2259521484375,
+        1802.908203125,
+        1881.4012451171875,
+        2504.702392578125
+      ]
+    },
+    {
+      "class_id": 1,
+      "class_name": "lead",
+      "confidence": 0.9504463076591492,
+      "bbox_xyxy": [
+        1272.31640625,
+        2498.13330078125,
+        1375.8837890625,
+        2796.280517578125
+      ]
+    },
+    {
+      "class_id": 1,
+      "class_name": "lead",
+      "confidence": 0.9438262581825256,
+      "bbox_xyxy": [
+        1742.8609619140625,
+        2462.6748046875,
+        1839.681640625,
+        2753.542236328125
+      ]
+    },
+    {
+      "class_id": 1,
+      "class_name": "lead",
+      "confidence": 0.8681656718254089,
+      "bbox_xyxy": [
+        1507.81982421875,
+        2475.438720703125,
+        1587.8487548828125,
+        2559.1923828125
+      ]
+    }
+  ],
+  "defects": [
+    {
+      "class_id": 0,
+      "class_name": "crash",
+      "confidence": 0.8698989748954773,
+      "bbox_xyxy": [
+        1228.9964599609375,
+        1932.4664306640625,
+        1866.6224365234375,
+        2272.901611328125
+      ]
+    }
+  ],
+  "image": {
+    "image_id": "65d55de1-15f5-4ff8-8053-4b834ca1a650",
+    "frame_role": "annotated",
+    "mime_type": "image/jpeg",
+    "file_name": "annotated.jpg",
+    "byte_length": 1334050,
+    "sha256": "255baa68f03b29bbad1d697474c2ea74c6e65f137e15cedb878079cb56df2856",
+    "width": 3024,
+    "height": 4032,
+    "jetson_path": "/home/jetson/project/smart_factory/result/aoi/ef3a21b6-2a77-4a05-9db4-f8af23829015/1/annotated.jpg",
+    "binary_frame_follows": true
+  },
+  "occurred_at": "2026-10-20T06:36:25.060495+00:00"
+}

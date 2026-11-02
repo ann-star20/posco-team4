@@ -1,0 +1,35 @@
+{
+  "run_id": "f748f2ce-746d-4edb-8747-fba320005c7d",
+  "schema": "test_e2e_7015aa1c4b5946ef8cefa85d7b564eba",
+  "status": "failed",
+  "output_dir": "/mnt/c/posco_project/data/mock-e2e/f748f2ce-746d-4edb-8747-fba320005c7d",
+  "ros_preflight": {
+    "success": false,
+    "publisher": "discovery 8.03 subscribers 0",
+    "subscriber": "",
+    "errors": ""
+  },
+  "jobs": [
+    {
+      "job_id": "3957a500-78ff-4d7f-835a-04046169867a",
+      "status": "queued"
+    },
+    {
+      "job_id": "248d9cba-fff7-42a7-a797-74a7903c427f",
+      "status": "queued"
+    },
+    {
+      "job_id": "f6de924b-8dc8-4e89-8422-3b57bfe6cb31",
+      "status": "queued"
+    },
+    {
+      "job_id": "3bfe65ab-2ef8-4f02-b19b-dd518e182e96",
+      "status": "queued"
+    },
+    {
+      "job_id": "30bd8065-e0df-462b-8c49-b0089eaa3937",
+      "status": "queued"
+    }
+  ],
+  "error_type": "TimeoutError"
+}

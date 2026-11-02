@@ -1,0 +1,21 @@
+[
+  {
+    "term": "OUT_OF_DOMAIN",
+    "plain_ko": "현재 surrogate 학습 범위를 벗어난 입력입니다.",
+    "not_meaning": "즉시 불량 또는 설비 이상이라는 뜻은 아닙니다.",
+    "operator_checks": ["입력값", "단위", "자리수", "동일 방향 반복 여부"],
+    "escalation": "유효한 입력에서 같은 방향으로 반복되면 공정 엔지니어에게 학습 커버리지 검토를 요청합니다.",
+    "audience": "operator",
+    "status": "draft-review-required"
+  },
+  {
+    "term": "quality_hold",
+    "plain_ko": "추가 확인 전 LOT 진행을 보류하는 품질 상태입니다.",
+    "not_meaning": "리포트가 LOT을 자동 격리하거나 상태를 변경한다는 뜻은 아닙니다.",
+    "operator_checks": ["AOI 근거", "재검사 결과", "현장 절차"],
+    "escalation": "현장 절차에 따라 운영자가 보류 여부를 판단합니다.",
+    "audience": "operator",
+    "status": "draft-review-required"
+  }
+]
+

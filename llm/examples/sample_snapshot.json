@@ -1,0 +1,24 @@
+{
+  "snapshot_id": "sample-2026-W44-r1",
+  "timezone": "Asia/Seoul",
+  "period": {"start": "2026-10-26T00:00:00+09:00", "end": "2026-11-01T23:59:59+09:00"},
+  "summary": {"검사 수": 120, "정상": 116, "불량": 2, "검토 필요": 2, "주요 경고": 3},
+  "sections": {
+    "aoi": {"pass": 116, "fail": 2, "review": 2, "crash": 1, "bend": 1},
+    "surrogate": {"succeeded": 37, "out_of_domain": 3},
+    "tcad": {"queued": 1, "succeeded": 4, "failed": 0}
+  },
+  "signals": [
+    {"kind": "aoi", "status": "fail", "target_type": "lot", "target_id": "LOT-DEMO-01", "evidence_id": "evt-aoi-001"},
+    {"kind": "aoi", "status": "image_error", "target_type": "camera", "target_id": "CAM-01", "evidence_id": "evt-camera-001"},
+    {"kind": "surrogate", "status": "out_of_domain", "ood_class": "coverage_gap_candidate", "repeat_count": 3, "repeat_threshold": 3, "target_type": "parameter", "target_id": "epi_thickness:high", "evidence_id": "evt-ood-003"}
+  ],
+  "evidence": [
+    {"evidence_id": "evt-aoi-001", "source": "aoi", "result_origin": "prod"},
+    {"evidence_id": "evt-camera-001", "source": "aoi", "result_origin": "prod"},
+    {"evidence_id": "evt-ood-003", "source": "surrogate", "result_origin": "prod"}
+  ],
+  "data_quality": {"제외된 mock 이벤트": 0, "중복 이벤트": 0, "누락 경고": 0},
+  "provenance": {"contract_version": "sample-1", "result_origin": "prod"}
+}
+

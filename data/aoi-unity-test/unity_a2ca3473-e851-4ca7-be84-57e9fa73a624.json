@@ -1,0 +1,94 @@
+{
+  "type": "aoi.inspection.completed",
+  "schema_version": 1,
+  "message_id": "56e20b22-31c3-4934-8c8f-5703d5579a96",
+  "request_id": "7362f132-85b3-4d58-a8f5-10ecf62bc6a7",
+  "job_id": "a2ca3473-e851-4ca7-be84-57e9fa73a624",
+  "run_id": "45126bdf-fc14-466d-aac1-c62467f57854",
+  "lot_id": "UNITY-DIRECT-TEST",
+  "unit_id": "MOSFET-TEST-1",
+  "attempt": 1,
+  "device_id": "wsl-jetson-test",
+  "result_origin": "prod",
+  "verdict": "fail",
+  "defect_detected": true,
+  "processing_ms": 2614.172,
+  "thresholds": {
+    "part_conf": 0.35,
+    "defect_conf": 0.2,
+    "part_iou": 0.45,
+    "defect_iou": 0.35
+  },
+  "parts": [
+    {
+      "class_id": 0,
+      "class_name": "body",
+      "confidence": 0.9818108677864075,
+      "bbox_xyxy": [
+        1197.2205810546875,
+        1802.9317626953125,
+        1881.3695068359375,
+        2504.716064453125
+      ]
+    },
+    {
+      "class_id": 1,
+      "class_name": "lead",
+      "confidence": 0.9503743052482605,
+      "bbox_xyxy": [
+        1272.3375244140625,
+        2498.126708984375,
+        1375.8720703125,
+        2796.2880859375
+      ]
+    },
+    {
+      "class_id": 1,
+      "class_name": "lead",
+      "confidence": 0.9437417387962341,
+      "bbox_xyxy": [
+        1742.88232421875,
+        2462.671630859375,
+        1839.6722412109375,
+        2753.541259765625
+      ]
+    },
+    {
+      "class_id": 1,
+      "class_name": "lead",
+      "confidence": 0.8679114580154419,
+      "bbox_xyxy": [
+        1507.823974609375,
+        2475.4345703125,
+        1587.85205078125,
+        2559.17333984375
+      ]
+    }
+  ],
+  "defects": [
+    {
+      "class_id": 0,
+      "class_name": "crash",
+      "confidence": 0.8699604868888855,
+      "bbox_xyxy": [
+        1228.9940185546875,
+        1932.4388427734375,
+        1866.6180419921875,
+        2272.886474609375
+      ]
+    }
+  ],
+  "image": {
+    "image_id": "b752cdec-e96c-4fd1-ba00-aaa9f81c222a",
+    "frame_role": "annotated",
+    "mime_type": "image/jpeg",
+    "file_name": "annotated.jpg",
+    "byte_length": 1333502,
+    "sha256": "461ad2bdca725a652ecbeb6f6bc8369fbd4e927a78db811f5812f34b3b23c343",
+    "width": 3024,
+    "height": 4032,
+    "jetson_path": "/mnt/c/posco_project/jetson_ws/result/unity-direct-test/a2ca3473-e851-4ca7-be84-57e9fa73a624/1/annotated.jpg",
+    "binary_frame_follows": true
+  },
+  "occurred_at": "2026-10-19T02:12:21.310981+00:00"
+}

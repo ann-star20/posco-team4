@@ -1,0 +1,66 @@
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/usr/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/mnt/c/posco_project/services/event_gateway/src/event_gateway/verification_worker.py", line 198, in <module>
+    main()
+  File "/mnt/c/posco_project/services/event_gateway/src/event_gateway/verification_worker.py", line 186, in main
+    settings = Settings.load(Path(".env"))
+  File "/mnt/c/posco_project/services/event_gateway/src/event_gateway/config.py", line 92, in load
+    raise ValueError("TCAD_API_TOKEN is required in prod mode")
+ValueError: TCAD_API_TOKEN is required in prod mode
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/usr/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/mnt/c/posco_project/services/event_gateway/src/event_gateway/verification_worker.py", line 198, in <module>
+    main()
+  File "/mnt/c/posco_project/services/event_gateway/src/event_gateway/verification_worker.py", line 186, in main
+    settings = Settings.load(Path(".env"))
+  File "/mnt/c/posco_project/services/event_gateway/src/event_gateway/config.py", line 92, in load
+    raise ValueError("TCAD_API_TOKEN is required in prod mode")
+ValueError: TCAD_API_TOKEN is required in prod mode
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/usr/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/mnt/c/posco_project/services/event_gateway/src/event_gateway/verification_worker.py", line 198, in <module>
+    main()
+  File "/mnt/c/posco_project/services/event_gateway/src/event_gateway/verification_worker.py", line 186, in main
+    settings = Settings.load(Path(".env"))
+  File "/mnt/c/posco_project/services/event_gateway/src/event_gateway/config.py", line 92, in load
+    raise ValueError("TCAD_API_TOKEN is required in prod mode")
+ValueError: TCAD_API_TOKEN is required in prod mode
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/usr/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/mnt/c/posco_project/services/event_gateway/src/event_gateway/verification_worker.py", line 198, in <module>
+    main()
+  File "/mnt/c/posco_project/services/event_gateway/src/event_gateway/verification_worker.py", line 186, in main
+    settings = Settings.load(Path(".env"))
+  File "/mnt/c/posco_project/services/event_gateway/src/event_gateway/config.py", line 92, in load
+    raise ValueError("TCAD_API_TOKEN is required in prod mode")
+ValueError: TCAD_API_TOKEN is required in prod mode
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/usr/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/mnt/c/posco_project/services/event_gateway/src/event_gateway/verification_worker.py", line 198, in <module>
+    main()
+  File "/mnt/c/posco_project/services/event_gateway/src/event_gateway/verification_worker.py", line 190, in main
+    count = VerificationWorker(connection, settings=settings).run_once()
+  File "/mnt/c/posco_project/services/event_gateway/src/event_gateway/verification_worker.py", line 30, in run_once
+    if self.candidate_worker and self.candidate_worker.run_once():
+  File "/mnt/c/posco_project/services/event_gateway/src/event_gateway/tcad_candidate_worker.py", line 62, in run_once
+    self._record_poll(
+  File "/mnt/c/posco_project/services/event_gateway/src/event_gateway/tcad_candidate_worker.py", line 223, in _record_poll
+    verdict = evaluate_spec(outputs.get("vth"), outputs.get("bv"), spec)
+  File "/home/user/posco-gateway-venv/lib/python3.10/site-packages/pydantic/main.py", line 1105, in __getattr__
+    raise AttributeError(f'{type(self).__name__!r} object has no attribute {item!r}')
+AttributeError: 'PredictedOutputs' object has no attribute 'get'

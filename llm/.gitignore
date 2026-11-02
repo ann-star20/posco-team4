@@ -1,0 +1,13 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+reports/
+snapshots/
+models/
+*.gguf
+*.pt
+*.onnx
+*.engine
+

@@ -1,0 +1,7 @@
+{
+  "run_id": "d2a9929a-2d4f-4dff-9a65-c371ea919dc8",
+  "schema": "test_e2e_2c9343586a2a49339f350a7e9bbdd2af",
+  "status": "failed",
+  "output_dir": "/mnt/c/posco_project/data/mock-e2e/d2a9929a-2d4f-4dff-9a65-c371ea919dc8",
+  "error_type": "RuntimeError"
+}

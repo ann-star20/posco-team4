@@ -1,0 +1,75 @@
+{
+  "run_id": "f14850e7-dff2-4e48-84dc-4e024ffd9bd4",
+  "schema": "test_e2e_cd3c1bd4569e47d5934f65fb2f93e2d3",
+  "status": "passed",
+  "output_dir": "/mnt/c/posco_project/data/mock-e2e/f14850e7-dff2-4e48-84dc-4e024ffd9bd4",
+  "jobs": [
+    {
+      "job_id": "df6755bb-8d5c-49e9-9277-9e90ed0b8d2b",
+      "status": "queued"
+    },
+    {
+      "job_id": "80c2a9e3-2e97-4686-888e-d4d2a74a7936",
+      "status": "queued"
+    },
+    {
+      "job_id": "1693555b-f4f5-42e5-8e0a-2cf589af610b",
+      "status": "queued"
+    },
+    {
+      "job_id": "1c316277-4da6-4d93-b9cb-1e81f416bda8",
+      "status": "queued"
+    },
+    {
+      "job_id": "62776d9a-0f7e-4fcd-baa2-4d67e29677a8",
+      "status": "queued"
+    }
+  ],
+  "elapsed_seconds": 41.41,
+  "events": [
+    {
+      "type": "surrogate.completed",
+      "sequence": 1
+    },
+    {
+      "type": "verification.accepted",
+      "sequence": 2
+    },
+    {
+      "type": "aoi.inspection.completed",
+      "sequence": 3
+    },
+    {
+      "type": "correction.verified",
+      "sequence": 4
+    },
+    {
+      "type": "surrogate.completed",
+      "sequence": 5
+    },
+    {
+      "type": "correction.approved",
+      "sequence": 6
+    },
+    {
+      "type": "correction.applied",
+      "sequence": 7
+    },
+    {
+      "type": "surrogate.completed",
+      "sequence": 8
+    },
+    {
+      "type": "surrogate.completed",
+      "sequence": 9
+    }
+  ],
+  "checks": [
+    "AOI ROS/JPG/DB/ACK",
+    "ML normal/anomaly/missing/failed",
+    "TCAD HTTP exactly one job",
+    "human approval fixture",
+    "Unity WS apply/duplicate ACK",
+    "HTTP/WS replay"
+  ]
+}
